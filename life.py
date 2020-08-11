@@ -18,40 +18,62 @@ class Life(object):
         self.C_ALIVE = self.getColor('WHITE', 'YELLOW')
         self.C_DEAD  = self.getColor('RED', 'BLACK')
         self.cells = []
-        nRows, nCols = 10, 20 # get rid of these?
+        self.done = []
+        self.undone = []
+        nRows, nCols = 20, 40 # get rid of these?
         for r in range(nRows):
             tmp = []
             for c in range(nCols):
                 tmp.append(0)
             self.cells.append(tmp)
-        self.cells[3][4] = 1
-        self.cells[4][3] = 1
-        self.cells[4][4] = 1
-        self.cells[4][5] = 1
-        self.cells[5][5] = 1
-        self.printCells()
+        r = nRows//2-1
+        c = nCols//2-1
+        print('r={} c={}'.format(r, c), file=Life.DBG_FILE)
+        self.cells[r-1][c] = 1
+        self.cells[r][c-1] = 1
+        self.cells[r][c]   = 1
+        self.cells[r][c+1] = 1
+        self.cells[r+1][c+1] = 1
+        self.done.append(self.cells)
+        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
     def getColor(self, FG, BG):
         return '3' + self.COLORS[FG] + ';4' + self.COLORS[BG] + 'm'
 
-    def run(self):
+    def run(self):#            print('{}'.format(c), end=' ', flush=True)
         b, c, s = 0, '', []
         while True:
             c = getwch()
             b = ord(c)
-            if b == 81 or b == 113: break
-            if b == 13: self.update()
-#            print('{}'.format(c), end=' ', flush=True)
+            if   b == 13: self.update()           # c == 'Enter'
+            elif b == 85 or b == 117: self.undo() # c == 'U' or c == 'u'
+            elif b == 82 or b == 114: self.redo() # c == 'R' or c == 'r'
+            elif b == 81 or b == 113: break       # c == 'Q' or c == 'q'
+
+    def undo(self):
+        if len(self.done) > 0:
+            self.cells = self.done.pop(-1)
+            self.undone.append(self.cells)
+            if len(self.done) > 0: self.cells = self.done[-1]
+            self.printCells('undo() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+
+    def redo(self):
+        if len(self.undone) > 0:
+            self.cells = self.undone.pop(-1)
+            self.done.append(self.cells)
+            if len(self.undone) > 0: self.cells = self.undone[-1]
+            self.printCells('redo() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
     def update(self):
         self.updateCells()
-        self.printCells()
+        self.done.append(self.cells)
+        self.printCells('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
         
     def updateCells(self, dbg=0):
         cells = []
         for r in range(len(self.cells)):
             tmp = []
-            for c in range(len(self.cells[0])):
+            for c in range(len(self.cells[0])): #r
                 n = len(self.getNeighbors(r, c))
                 if self.isAlive(r, c) == 1:
                     if n == 2 or n == 3: tmp.append(1)
@@ -61,14 +83,16 @@ class Life(object):
             cells.append(tmp)
         self.cells = cells
 
-    def printCells(self):
+    def printCells(self, reason=''):
+        if len(reason) > 0: print(reason, file=Life.DBG_FILE)
         for r in range(len(self.cells)):
-            for c in range(len(self.cells[0])):
+            for c in range(len(self.cells[0])): #r
                 if self.cells[r][c] == 0:
                     self.prints(' ', r, c, self.C_DEAD, self.STYLES['NORMAL'])
+                    print(' ', file=Life.DBG_FILE, end='')
                 else:
                     self.prints(' ', r, c, self.C_ALIVE, self.STYLES['BRIGHT'])
-                print('{}'.format(self.cells[r][c]), file=Life.DBG_FILE, end='')
+                    print('X', file=Life.DBG_FILE, end='')
             print(file=Life.DBG_FILE)
         print(file=Life.DBG_FILE)
 
