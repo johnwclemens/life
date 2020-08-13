@@ -23,23 +23,29 @@ class Life(object):
         self.undone = []
         self.stats = {}
         self.stats['S_INV_DNSTY'] = -1
-        nRows, nCols = 10, 20 # get rid of these?
+        nRows, nCols = 130, 220 # get rid of these?
         for r in range(nRows):
             tmp = []
             for c in range(nCols):
                 tmp.append(0)
             self.cells.append(tmp)
-#        self.empty = self.cells
-#        self.done.append(self.cells)
-#        self.printCells('init(empty) done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
-        r = nRows//2-1
-        c = nCols//2-1
+        rOff, cOff = 10, 5
+        r = int(nRows/2 - 1 + rOff)
+        c = int(nCols/2 - 1 - cOff)
         print('r={} c={}'.format(r, c), file=Life.DBG_FILE)
-        self.cells[r-1][c] = 1
-        self.cells[r][c-1] = 1
-        self.cells[r][c]   = 1
-        self.cells[r][c+1] = 1
+        self.cells[r-1][c]   = 1
+        self.cells[r][c-1]   = 1
+        self.cells[r][c]     = 1
+        self.cells[r][c+1]   = 1
         self.cells[r+1][c+1] = 1
+        r = int(nRows/2 - 1 + rOff)
+        c = int(nCols/2 - 1 + cOff)
+        print('r={} c={}'.format(r, c), file=Life.DBG_FILE)
+        self.cells[r-1][c]   = 1
+        self.cells[r][c-1]   = 1
+        self.cells[r][c]     = 1
+        self.cells[r][c+1]   = 1
+        self.cells[r+1][c-1] = 1
         self.done.append(self.cells)
         self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
@@ -51,19 +57,18 @@ class Life(object):
         while True:
             c = getwch()
             b = ord(c)
-            if   b == 13:             self.update() # c == 'Enter'
-            elif b == 85 or b == 117: self.undo()   # c == 'U' or c == 'u'
-            elif b == 82 or b == 114: self.redo()   # c == 'R' or c == 'r'
-            elif b == 75:             self.undo()   # c == 'Left Arrow'
-            elif b == 77:             self.redo()   # c == 'Right Arrow'
-            elif b == 81 or b == 113: break         # c == 'Q' or c == 'q'
+            if   b == 13:                        self.update() # c == 'Enter'
+            elif b == 85 or b == 117 or b == 75: self.undo()   # c == 'U' or c == 'u' or c == 'Left Arrow'
+            elif b == 82 or b == 114 or b == 77: self.redo()   # c == 'R' or c == 'r' or c == 'Right Arrow'
+            elif b == 75:                        self.undo()   # c == 'Left Arrow'
+            elif b == 77:                        self.redo()   # c == 'Right Arrow'
+            elif b == 81 or b == 113: break                    # c == 'Q' or c == 'q'
 
     def undo(self):
         if len(self.done) > 0:
             self.cells = self.done.pop(-1)
             self.undone.append(self.cells)
             if len(self.done) > 0: self.cells = self.done[-1]
-#            else:                  self.cells = self.empty
             self.printCells('undo() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
     def redo(self):
