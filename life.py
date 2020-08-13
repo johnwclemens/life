@@ -12,45 +12,40 @@ class Life(object):
 
     def __init__(self):
         colorama.init(autoreset=True)
-        Life.clearScreen()
         self.COLORS = { 'BLACK':'0', 'RED':'1', 'GREEN':'2', 'YELLOW':'3', 'BLUE':'4', 'MAGENTA':'5', 'CYAN':'6', 'WHITE':'7' }
         self.STYLES = {'NORMAL':'22;', 'BRIGHT':'1;'}
         self.C_ALIVE = self.getColor('WHITE', 'YELLOW')
         self.C_DEAD  = self.getColor('RED', 'BLACK')
         self.C_TEXT  = self.getColor('WHITE', 'BLACK')
-        self.cells = []
         self.done = []
         self.undone = []
         self.stats = {}
         self.stats['S_INV_DNSTY'] = -1
-        nRows, nCols = 130, 220 # get rid of these?
-        for r in range(nRows):
-            tmp = []
-            for c in range(nCols):
-                tmp.append(0)
-            self.cells.append(tmp)
+        self.nRows = 130
+        self.nCols = 220
+        self.clear()
+        self.loadTest()
+        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+
+    def loadTest(self):
         rOff, cOff = 10, 5
-        r = int(nRows/2 - 1 + rOff)
-        c = int(nCols/2 - 1 - cOff)
-        print('r={} c={}'.format(r, c), file=Life.DBG_FILE)
+        r = int(self.nRows/2 - 1 + rOff)
+        c = int(self.nCols/2 - 1 - cOff)
+        print('loadTest() r={} c={}'.format(r, c), file=Life.DBG_FILE)
         self.cells[r-1][c]   = 1
         self.cells[r][c-1]   = 1
         self.cells[r][c]     = 1
         self.cells[r][c+1]   = 1
         self.cells[r+1][c+1] = 1
-        r = int(nRows/2 - 1 + rOff)
-        c = int(nCols/2 - 1 + cOff)
-        print('r={} c={}'.format(r, c), file=Life.DBG_FILE)
+        r = int(self.nRows/2 - 1 + rOff)
+        c = int(self.nCols/2 - 1 + cOff)
+        print('loadTest() r={} c={}'.format(r, c), file=Life.DBG_FILE)
         self.cells[r-1][c]   = 1
         self.cells[r][c-1]   = 1
         self.cells[r][c]     = 1
         self.cells[r][c+1]   = 1
         self.cells[r+1][c-1] = 1
         self.done.append(self.cells)
-        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
-
-    def getColor(self, FG, BG):
-        return '3' + self.COLORS[FG] + ';4' + self.COLORS[BG] + 'm'
 
     def run(self):#            print('{}'.format(c), end=' ', flush=True)
         b, c, s = 0, '', []
@@ -60,16 +55,62 @@ class Life(object):
             if   b == 13:                        self.update() # c == 'Enter'
             elif b == 85 or b == 117 or b == 75: self.undo()   # c == 'U' or c == 'u' or c == 'Left Arrow'
             elif b == 82 or b == 114 or b == 77: self.redo()   # c == 'R' or c == 'r' or c == 'Right Arrow'
-            elif b == 75:                        self.undo()   # c == 'Left Arrow'
-            elif b == 77:                        self.redo()   # c == 'Right Arrow'
+            elif b == 71 or b == 103:            self.goTo()   # c == 'G' or c == 'g'
+            elif b == 74 or b == 106:            self.jump()   # c == 'J' or c == 'j'
             elif b == 81 or b == 113: break                    # c == 'Q' or c == 'q'
+            
+    def goTo(self):
+        gg, tmp = '', []
+        while len(gg) != 32:
+            gg = getwch()
+            if gg != ' ' and '0' <= gg <= '9': tmp.append(gg)
+            else: break
+        if len(tmp):
+            g = int(''.join(tmp))
 
-    def undo(self):
+    def clear(self):
+        self.clearScreen()
+        self.clearCells()
+
+    @staticmethod
+    def clearScreen(arg=2, file=None, reason=None, dbg=0):
+        if dbg: print('clearScreen() arg={} file={} reason={}'.format(arg, file, reason), file=Life.DBG_FILE)
+        print(Life.CSI + '{}J'.format(arg), file=file)
+
+    def clearCells(self):
+        self.cells = []
+        for r in range(self.nRows):
+            tmp = []
+            for c in range(self.nCols):
+                tmp.append(0)
+            self.cells.append(tmp)
+
+    def jump(self):
+        jj, tmp = '', []
+        while jj != 32:
+            jj = getwch()
+            if jj == '-' or '0' <= jj <= '9': tmp.append(jj)
+            else: break
+        print('jump({}) done[{}] undone[{}] BGN'.format(tmp, len(self.done), len(self.undone)), file=Life.DBG_FILE)
+        if len(tmp):
+            j = int(''.join(tmp))
+            print('jump({})'.format(j), file=Life.DBG_FILE)
+            if j > 0:
+                for jj in range(j):
+                    print('{}'.format(jj), file=Life.DBG_FILE, end=',')
+                    self.update(pc=0)
+            elif j < 0:
+                for jj in range(-1, j-1, -1):
+                    print('{}'.format(jj), file=Life.DBG_FILE, end=',')
+                    self.undo(pc=0)
+            self.printCells('jump({}) done[{}] undone[{}] END'.format(j, len(self.done), len(self.undone)))
+
+    def undo(self, pc=1):
         if len(self.done) > 0:
             self.cells = self.done.pop(-1)
             self.undone.append(self.cells)
             if len(self.done) > 0: self.cells = self.done[-1]
-            self.printCells('undo() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+            if pc == 1: self.printCells('undo() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
     def redo(self):
         if len(self.undone) > 0:
@@ -78,10 +119,10 @@ class Life(object):
             if len(self.undone) > 0: self.cells = self.undone[-1]
             self.printCells('redo() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
-    def update(self):
+    def update(self, pc=1):
         self.updateCells()
         self.done.append(self.cells)
-        self.printCells('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+        if pc == 1: self.printCells('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
         
     def updateCells(self, dbg=0):
         cells = []
@@ -139,10 +180,8 @@ class Life(object):
         if dbg: print('{}'.format(s), file=Life.DBG_FILE, end='')
         print(Life.CSI + bstyle + style + Life.CSI + '{};{}H{}'.format(row + 1, col + 1, str(s)), end='')
 
-    @staticmethod
-    def clearScreen(arg=2, file=None, reason=None, dbg=0):
-        if dbg: print('clearScreen() arg={} file={} reason={}'.format(arg, file, reason), file=Life.DBG_FILE)
-        print(Life.CSI + '{}J'.format(arg), file=file)
+    def getColor(self, FG, BG):
+        return '3' + self.COLORS[FG] + ';4' + self.COLORS[BG] + 'm'
 
 def main():
     life = Life()
