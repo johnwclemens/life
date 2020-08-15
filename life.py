@@ -3,6 +3,8 @@ import sys
 import msvcrt
 getwch = msvcrt.getwch
 import colorama
+sys.path.insert(0, os.path.abspath('../lib'))
+import cmdArgs
 
 class Life(object):
     ESC = '\033'
@@ -17,21 +19,96 @@ class Life(object):
         self.C_ALIVE = self.getColor('WHITE', 'YELLOW')
         self.C_DEAD  = self.getColor('RED', 'BLACK')
         self.C_TEXT  = self.getColor('WHITE', 'BLACK')
+        self.argMap = {}
+        cmdArgs.parseCmdLine(self.argMap)
+        self.DATA = set('.*')
+        print('DATA={}'.format(self.DATA), file=Life.DBG_FILE)
         self.done = []
         self.undone = []
+        self.shapes = {}
         self.stats = {}
         self.stats['S_INV_DNSTY'] = -1
+        self.inName = 'lexicon-no-wrap.txt'
+        if 'f' in self.argMap and len(self.argMap['f']) > 0:
+            self.inName = self.argMap['f'][0]                       # file to read from
+        print('inName={} args={}'.format(self.inName, self.argMap), file=Life.DBG_FILE)
         self.nRows = 130
         self.nCols = 220
         self.clear()
-        self.loadTest()
+        self.parse1()
+        exit()
         self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
-    def loadTest(self):
+    def parse1(self):
+        keys, vals = [], []
+        key, state = '', 0
+        with open(self.inName, 'r') as self.inFile:
+            for line in self.inFile:
+                line = line.strip()
+                if len(line) > 0:
+                    data = set(line)
+                    if state == 0 and line[0] == ':':
+                        p = line.find(':', 1)
+                        if p != -1:
+                            key = line[1:p]
+#                            print(key, file=Life.DBG_FILE)
+                            state = 1
+                    elif state > 0 and data <= self.DATA:
+#                        print(line, file=Life.DBG_FILE)
+                        line = line.translate(line.maketrans('.*', '01'))
+                        vals.append(line)
+                        state = 2
+                    elif state == 2:
+                        self.shapes[key] = vals
+                        vals = []
+                        state = 0
+        print(self.shapes, file=Life.DBG_FILE)
+
+    def parse(self):
+        keys, vals = [], []
+        key = ''
+        with open(self.inName, 'r') as self.inFile:
+            for line in self.inFile:
+                if len(line) > 0:
+                    if line[0] == ':':
+                        p = line.find(':', 1)
+                        if p != -1:
+                            key = line[1:p]
+                            print(key, file=Life.DBG_FILE)
+
+    def loadTest3(self):
+        with open(self.inName, 'r') as self.inFile:
+            for line in self.inFile:
+                key = self.readKey3(line)
+                if len(key) > 0 and key not in self.shapes:
+                    print('loadTest3() key={}'.format(key), file=Life.DBG_FILE)
+
+    def readKey3(self, line):
+        tokens = line.strip().split(' ')
+        for t in tokens:
+            if len(t) > 0 and t[0] == ':':
+                if t[-1] == ':':
+                    return t[1:-1]
+        return ''
+
+    def loadTest2(self):
+        with open(self.inName, 'r') as self.inFile:
+            for line in self.inFile:
+                key = ''
+                tokens = line.strip().split(' ')
+                for t in tokens:
+                    if len(t) > 0 and t[0] == ':':
+                        if t[-1] == ':':
+                            key = t[1:-1]
+                    if len(key) > 0: break
+                if len(key) > 0 and key not in self.shapes:
+                    print('loadTest2() key={}'.format(key), file=Life.DBG_FILE)
+
+    def loadTest1(self):
         rOff, cOff = 10, 5
         r = int(self.nRows/2 - 1 + rOff)
         c = int(self.nCols/2 - 1 - cOff)
-        print('loadTest() r={} c={}'.format(r, c), file=Life.DBG_FILE)
+        print('loadTest1() r={} c={}'.format(r, c), file=Life.DBG_FILE)
         self.cells[r-1][c]   = 1
         self.cells[r][c-1]   = 1
         self.cells[r][c]     = 1
@@ -39,7 +116,7 @@ class Life(object):
         self.cells[r+1][c+1] = 1
         r = int(self.nRows/2 - 1 + rOff)
         c = int(self.nCols/2 - 1 + cOff)
-        print('loadTest() r={} c={}'.format(r, c), file=Life.DBG_FILE)
+        print('loadTest1() r={} c={}'.format(r, c), file=Life.DBG_FILE)
         self.cells[r-1][c]   = 1
         self.cells[r][c-1]   = 1
         self.cells[r][c]     = 1
