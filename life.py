@@ -11,7 +11,7 @@ class Life(object):
     DBG_NAME = "Life.dbg"
     DBG_FILE = open(DBG_NAME, "w")
 
-    def __init__(self):
+    def __init__(self): #300 235 143 @ 8x8
         colorama.init(autoreset=True)
         self.COLORS = { 'BLACK':'0', 'RED':'1', 'GREEN':'2', 'YELLOW':'3', 'BLUE':'4', 'MAGENTA':'5', 'CYAN':'6', 'WHITE':'7' }
         self.STYLES = {'NORMAL':'22;', 'BRIGHT':'1;'}
@@ -36,16 +36,17 @@ class Life(object):
         self.nCols = 220
         self.clear()
         self.parse()
-        self.addShape('44P5H2V0')
+        self.addShape('1-2-3')
         self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
-    def addShape(self, k):
+    def addShape(self, key):
         rOff, cOff = 0, 0
         row = int(self.nRows/2 - 1 + rOff)
         col = int(self.nCols/2 - 1 - cOff)
-        print('addShape({},{}) {}'.format(row, col, k), file=Life.DBG_FILE)
-        val = self.shapes[k]
-        data = val[0]
+        v = self.shapes[key]
+        data = v[0]
+        print('addShape({},{}) key={} data={}'.format(row, col, key, data), file=Life.DBG_FILE)
+        if data is None: return
         print(data, file=Life.DBG_FILE)
         for (i,r) in enumerate(data):
             for (j,c) in enumerate(r):
@@ -71,26 +72,33 @@ class Life(object):
                 line = line.strip()
                 if len(line) > 0:
                     dataSet = set(line)
-                    if state <= 1 and line[0] == ':':
+#                    print('state={} key={} line={}'.format(state, key, line), file=Life.DBG_FILE)
+                    if line[0] == ':': #state <= 1
                         p = line.find(':', 1)
                         if p != -1:
+                            if state == 2:
+                                self.shapes[key][0] = data
+                                print('{:>50} | has {} rows of data'.format(key, len(data)), file=Life.DBG_FILE)
+                            data = []
                             key = line[1:p]
                             info = line[p+1:].strip()
-                            val = [None, info, None, None]
-                            self.shapes[key] = val
-                            print('{:>50} {} {} {} {} {}'.format(key, state, val[0], val[3], val[2], val[1]), file=Life.DBG_FILE)
+                            v = [None, info, None, None]
+                            self.shapes[key] = v
                             state = 1
-                    elif state > 0 and dataSet <= self.DATA_SET:
+                            print('{:>50} | state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=Life.DBG_FILE)
+                    elif dataSet <= self.DATA_SET: #state > 0
                         print(line, file=Life.DBG_FILE)
                         line = line.translate(self.XLATE)
                         data.append(line)
                         state = 2
+                        print(line, file=Life.DBG_FILE)
                     elif state == 2:
                         self.shapes[key][0] = data
-                        data = []
                         state = 0
-                    else:
-                        print('state={} ?{}?'.format(state, line), file=Life.DBG_FILE)
+                        print('{:>50} | has {} rows of data'.format(key, len(data)), file=Life.DBG_FILE)
+                        data = []
+#                    else:
+#                        print('state={} key={} line={}'.format(state, key, line), file=Life.DBG_FILE)
         self.printShapes()
 
     '''
