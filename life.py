@@ -11,7 +11,7 @@ class Life(object):
     DBG_NAME = "Life.dbg"
     DBG_FILE = open(DBG_NAME, "w")
 
-    def __init__(self): #300 235 143 @ 8x8
+    def __init__(self): #147 240 @ 8x8
         colorama.init(autoreset=True)
         self.COLORS = { 'BLACK':'0', 'RED':'1', 'GREEN':'2', 'YELLOW':'3', 'BLUE':'4', 'MAGENTA':'5', 'CYAN':'6', 'WHITE':'7' }
         self.STYLES = {'NORMAL':'22;', 'BRIGHT':'1;'}
@@ -26,11 +26,11 @@ class Life(object):
         self.shapes = {}
         self.stats = {}
         self.stats['S_INV_DNSTY'] = -1
-        self.inName = 'lexicon-no-wrap.txt'
-        self.nRows = 130
-        self.nCols = 220
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
+        self.nRows = 147
+        self.nCols = 237
+        self.inName = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=Life.DBG_FILE)
         if 'f' in self.argMap and len(self.argMap['f']) > 0:
             self.inName = self.argMap['f'][0]
@@ -74,7 +74,7 @@ class Life(object):
                         if p != -1:
                             if state == 2:
                                 self.shapes[key][0] = data
-                                print('key=[{}] {}rows x {}cols\n{}'.format(key, len(data), len(data[0]), info), file=Life.DBG_FILE)
+                                print('key=[{}] size=[{}x{}]\n[{}]'.format(key, len(data), len(data[0]), info), file=Life.DBG_FILE)
                             data = []
                             key = line[1:p]
                             info = line[p+1:].strip()
@@ -87,11 +87,11 @@ class Life(object):
                         line = line.translate(self.XLATE)
                         data.append(line)
                         state = 2
-                        print(line, file=Life.DBG_FILE)
+                        print('    {}'.format(line), file=Life.DBG_FILE)
                     elif state == 2:
                         self.shapes[key][0] = data
                         state = 0
-                        print('key=[{}] {}rows x {}cols\n{}'.format(key, len(data), len(data[0]), info), file=Life.DBG_FILE)
+                        print('key=[{}] size=[{}x{}]\n[{}]'.format(key, len(data), len(data[0]), info), file=Life.DBG_FILE)
                         data = []
         self.printShapes()
 
@@ -104,7 +104,6 @@ class Life(object):
                 print('[{}]'.format(k), file=Life.DBG_FILE)
                 for d in data:
                     print(d, file=Life.DBG_FILE)
-#            else: print(data, file=Life.DBG_FILE)
         print('printShapes(END)', file=Life.DBG_FILE)
 
     '''
