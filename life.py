@@ -18,8 +18,6 @@ class Life(object):
         self.C_ALIVE = self.getColor('WHITE', 'YELLOW')
         self.C_DEAD  = self.getColor('RED', 'BLACK')
         self.C_TEXT  = self.getColor('WHITE', 'BLACK')
-        self.argMap = {}
-        cmdArgs.parseCmdLine(self.argMap)
         self.DATA_SET = set('.*')
         self.XLATE = str.maketrans('.*', '01')
         print('DATA_SET={} XLATE={}'.format(self.DATA_SET, self.XLATE), file=Life.DBG_FILE)
@@ -29,11 +27,21 @@ class Life(object):
         self.stats = {}
         self.stats['S_INV_DNSTY'] = -1
         self.inName = 'lexicon-no-wrap.txt'
-        if 'f' in self.argMap and len(self.argMap['f']) > 0:
-            self.inName = self.argMap['f'][0]                       # file to read from
-        print('inName={} args={}'.format(self.inName, self.argMap), file=Life.DBG_FILE)
         self.nRows = 130
         self.nCols = 220
+        self.argMap = {}
+        self.argMap = cmdArgs.parseCmdLine(dbg=1)
+        print('argMap={}'.format(self.argMap), file=Life.DBG_FILE)
+        if 'f' in self.argMap and len(self.argMap['f']) > 0:
+            self.inName = self.argMap['f'][0]
+        print('inName={}'.format(self.inName), file=Life.DBG_FILE)
+        if 'r' in self.argMap and len(self.argMap['r']) > 0:
+            self.nRows = int(self.argMap['r'][0])
+        print('nRows={}'.format(self.nRows), file=Life.DBG_FILE)
+        if 'c' in self.argMap and len(self.argMap['c']) > 0:
+            self.nCols = int(self.argMap['c'][0])
+        print('nCols={}'.format(self.nCols), file=Life.DBG_FILE)
+        print(file=Life.DBG_FILE)
         self.clear()
         self.parse()
         self.addShape('1-2-3')
@@ -45,25 +53,14 @@ class Life(object):
         col = int(self.nCols/2 - 1 - cOff)
         v = self.shapes[key]
         data = v[0]
-        print('addShape({},{}) key={} data={}'.format(row, col, key, data), file=Life.DBG_FILE)
+        print('addShape({},{}) key={}'.format(row, col, key), file=Life.DBG_FILE)
         if data is None: return
-        print(data, file=Life.DBG_FILE)
+#        print(data, file=Life.DBG_FILE)
         for (i,r) in enumerate(data):
+            print(r, file=Life.DBG_FILE)
             for (j,c) in enumerate(r):
                 self.cells[i+row][j+col] = int(data[i][j])
         self.done.append(self.cells)
-
-    def printShapes(self):
-        print('printShapes(BGN) len={}'.format(len(self.shapes)), file=Life.DBG_FILE)
-        for k in self.shapes:
-            print(k, file=Life.DBG_FILE)
-            v = self.shapes[k]
-            data = v[0]
-            if data != None:
-                for d in data:
-                    print(d, file=Life.DBG_FILE)
-            else: print(data, file=Life.DBG_FILE)
-        print('printShapes(END)', file=Life.DBG_FILE)
 
     def parse(self):
         data, key, info, state = [], '', '', 0
@@ -72,22 +69,21 @@ class Life(object):
                 line = line.strip()
                 if len(line) > 0:
                     dataSet = set(line)
-#                    print('state={} key={} line={}'.format(state, key, line), file=Life.DBG_FILE)
                     if line[0] == ':': #state <= 1
                         p = line.find(':', 1)
                         if p != -1:
                             if state == 2:
                                 self.shapes[key][0] = data
-                                print('{:>50} | has {} rows of data'.format(key, len(data)), file=Life.DBG_FILE)
+                                print('key=[{}] {}rows x {}cols\n{}'.format(key, len(data), len(data[0]), info), file=Life.DBG_FILE)
                             data = []
                             key = line[1:p]
                             info = line[p+1:].strip()
                             v = [None, info, None, None]
                             self.shapes[key] = v
                             state = 1
-                            print('{:>50} | state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=Life.DBG_FILE)
+#                            print('{:>50} | state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=Life.DBG_FILE)
                     elif dataSet <= self.DATA_SET: #state > 0
-                        print(line, file=Life.DBG_FILE)
+#                        print(line, file=Life.DBG_FILE)
                         line = line.translate(self.XLATE)
                         data.append(line)
                         state = 2
@@ -95,47 +91,23 @@ class Life(object):
                     elif state == 2:
                         self.shapes[key][0] = data
                         state = 0
-                        print('{:>50} | has {} rows of data'.format(key, len(data)), file=Life.DBG_FILE)
+                        print('key=[{}] {}rows x {}cols\n{}'.format(key, len(data), len(data[0]), info), file=Life.DBG_FILE)
                         data = []
-#                    else:
-#                        print('state={} key={} line={}'.format(state, key, line), file=Life.DBG_FILE)
         self.printShapes()
 
-    '''
-    def parseA(self):
-        vals, key, state = [], '', 0
-        with open(self.inName, 'r') as self.inFile:
-            for line in self.inFile:
-                line = line.strip()
-                if len(line) > 0:
-                    dataSet = set(line)
-                    if state == 0 and line[0] == ':':
-                        p = line.find(':', 1)
-                        if p != -1:
-                            key = line[1:p]
-                            print(key, file=Life.DBG_FILE)
-                            state = 1
-#                    elif state == 1 and line[0] == ':':
-#                        self.shapes[key] = None
-#                        vals = []
-#                        state = 0
-#                        p = line.find(':', 1)
-#                        if p != -1:
-#                            key = line[1:p]
-#                            print(key, file=Life.DBG_FILE)
-#                            state = 1
-                    elif state > 0 and dataSet <= self.DATA_SET:
-                        print(line, file=Life.DBG_FILE)
-                        line = line.translate(line.maketrans('.*', '01'))
-                        vals.append(line)
-                        state = 2
-                    elif state == 2:
-                        self.shapes[key] = vals
-                        vals = []
-                        state = 0
-        self.printShapes()
-    '''
+    def printShapes(self):
+        print('printShapes(BGN) len={}'.format(len(self.shapes)), file=Life.DBG_FILE)
+        for k in self.shapes:
+            v = self.shapes[k]
+            data = v[0]
+            if data != None:
+                print('[{}]'.format(k), file=Life.DBG_FILE)
+                for d in data:
+                    print(d, file=Life.DBG_FILE)
+#            else: print(data, file=Life.DBG_FILE)
+        print('printShapes(END)', file=Life.DBG_FILE)
 
+    '''
     def loadTest1(self):
         rOff, cOff = 10, 5
         r = int(self.nRows/2 - 1 + rOff)
@@ -155,6 +127,7 @@ class Life(object):
         self.cells[r][c+1]   = 1
         self.cells[r+1][c-1] = 1
         self.done.append(self.cells)
+    '''
 
     def run(self):#            print('{}'.format(c), end=' ', flush=True)
         b, c, s = 0, '', []
@@ -168,15 +141,6 @@ class Life(object):
             elif b == 74 or b == 106:            self.jump()   # c == 'J' or c == 'j'
             elif b == 81 or b == 113: break                    # c == 'Q' or c == 'q'
             
-    def goTo(self):
-        gg, tmp = '', []
-        while len(gg) != 32:
-            gg = getwch()
-            if gg != ' ' and '0' <= gg <= '9': tmp.append(gg)
-            else: break
-        if len(tmp):
-            g = int(''.join(tmp))
-
     def clear(self):
         self.clearScreen()
         self.clearCells()
@@ -213,6 +177,15 @@ class Life(object):
                     print('{}'.format(jj), file=Life.DBG_FILE, end=',')
                     self.undo(pc=0)
             self.printCells('jump({}) done[{}] undone[{}] END'.format(j, len(self.done), len(self.undone)))
+
+    def goTo(self):
+        gg, tmp = '', []
+        while len(gg) != 32:
+            gg = getwch()
+            if gg != ' ' and '0' <= gg <= '9': tmp.append(gg)
+            else: break
+        if len(tmp):
+            g = int(''.join(tmp))
 
     def undo(self, pc=1):
         if len(self.done) > 0:
