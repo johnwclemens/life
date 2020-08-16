@@ -7,7 +7,6 @@ sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
 
 class Life(object):
-    ESC = '\033'
     CSI = '\033\133'
     DBG_NAME = "Life.dbg"
     DBG_FILE = open(DBG_NAME, "w")
@@ -21,8 +20,9 @@ class Life(object):
         self.C_TEXT  = self.getColor('WHITE', 'BLACK')
         self.argMap = {}
         cmdArgs.parseCmdLine(self.argMap)
-        self.DATA = set('.*')
-        print('DATA={}'.format(self.DATA), file=Life.DBG_FILE)
+        self.DATA_SET = set('.*')
+        self.XLATE = str.maketrans('.*', '01')
+        print('DATA_SET={} XLATE={}'.format(self.DATA_SET, self.XLATE), file=Life.DBG_FILE)
         self.done = []
         self.undone = []
         self.shapes = {}
@@ -35,26 +35,89 @@ class Life(object):
         self.nRows = 130
         self.nCols = 220
         self.clear()
-        self.parse1()
-        exit()
+        self.parse()
+        self.addShape('44P5H2V0')
         self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
-    def parse1(self):
-        keys, vals = [], []
-        key, state = '', 0
+    def addShape(self, k):
+        rOff, cOff = 0, 0
+        row = int(self.nRows/2 - 1 + rOff)
+        col = int(self.nCols/2 - 1 - cOff)
+        print('addShape({},{}) {}'.format(row, col, k), file=Life.DBG_FILE)
+        val = self.shapes[k]
+        data = val[0]
+        print(data, file=Life.DBG_FILE)
+        for (i,r) in enumerate(data):
+            for (j,c) in enumerate(r):
+                self.cells[i+row][j+col] = int(data[i][j])
+        self.done.append(self.cells)
+
+    def printShapes(self):
+        print('printShapes(BGN) len={}'.format(len(self.shapes)), file=Life.DBG_FILE)
+        for k in self.shapes:
+            print(k, file=Life.DBG_FILE)
+            v = self.shapes[k]
+            data = v[0]
+            if data != None:
+                for d in data:
+                    print(d, file=Life.DBG_FILE)
+            else: print(data, file=Life.DBG_FILE)
+        print('printShapes(END)', file=Life.DBG_FILE)
+
+    def parse(self):
+        data, key, info, state = [], '', '', 0
         with open(self.inName, 'r') as self.inFile:
             for line in self.inFile:
                 line = line.strip()
                 if len(line) > 0:
-                    data = set(line)
+                    dataSet = set(line)
+                    if state <= 1 and line[0] == ':':
+                        p = line.find(':', 1)
+                        if p != -1:
+                            key = line[1:p]
+                            info = line[p+1:].strip()
+                            val = [None, info, None, None]
+                            self.shapes[key] = val
+                            print('{:>50} {} {} {} {} {}'.format(key, state, val[0], val[3], val[2], val[1]), file=Life.DBG_FILE)
+                            state = 1
+                    elif state > 0 and dataSet <= self.DATA_SET:
+                        print(line, file=Life.DBG_FILE)
+                        line = line.translate(self.XLATE)
+                        data.append(line)
+                        state = 2
+                    elif state == 2:
+                        self.shapes[key][0] = data
+                        data = []
+                        state = 0
+                    else:
+                        print('state={} ?{}?'.format(state, line), file=Life.DBG_FILE)
+        self.printShapes()
+
+    '''
+    def parseA(self):
+        vals, key, state = [], '', 0
+        with open(self.inName, 'r') as self.inFile:
+            for line in self.inFile:
+                line = line.strip()
+                if len(line) > 0:
+                    dataSet = set(line)
                     if state == 0 and line[0] == ':':
                         p = line.find(':', 1)
                         if p != -1:
                             key = line[1:p]
-#                            print(key, file=Life.DBG_FILE)
+                            print(key, file=Life.DBG_FILE)
                             state = 1
-                    elif state > 0 and data <= self.DATA:
-#                        print(line, file=Life.DBG_FILE)
+#                    elif state == 1 and line[0] == ':':
+#                        self.shapes[key] = None
+#                        vals = []
+#                        state = 0
+#                        p = line.find(':', 1)
+#                        if p != -1:
+#                            key = line[1:p]
+#                            print(key, file=Life.DBG_FILE)
+#                            state = 1
+                    elif state > 0 and dataSet <= self.DATA_SET:
+                        print(line, file=Life.DBG_FILE)
                         line = line.translate(line.maketrans('.*', '01'))
                         vals.append(line)
                         state = 2
@@ -62,47 +125,8 @@ class Life(object):
                         self.shapes[key] = vals
                         vals = []
                         state = 0
-        print(self.shapes, file=Life.DBG_FILE)
-
-    def parse(self):
-        keys, vals = [], []
-        key = ''
-        with open(self.inName, 'r') as self.inFile:
-            for line in self.inFile:
-                if len(line) > 0:
-                    if line[0] == ':':
-                        p = line.find(':', 1)
-                        if p != -1:
-                            key = line[1:p]
-                            print(key, file=Life.DBG_FILE)
-
-    def loadTest3(self):
-        with open(self.inName, 'r') as self.inFile:
-            for line in self.inFile:
-                key = self.readKey3(line)
-                if len(key) > 0 and key not in self.shapes:
-                    print('loadTest3() key={}'.format(key), file=Life.DBG_FILE)
-
-    def readKey3(self, line):
-        tokens = line.strip().split(' ')
-        for t in tokens:
-            if len(t) > 0 and t[0] == ':':
-                if t[-1] == ':':
-                    return t[1:-1]
-        return ''
-
-    def loadTest2(self):
-        with open(self.inName, 'r') as self.inFile:
-            for line in self.inFile:
-                key = ''
-                tokens = line.strip().split(' ')
-                for t in tokens:
-                    if len(t) > 0 and t[0] == ':':
-                        if t[-1] == ':':
-                            key = t[1:-1]
-                    if len(key) > 0: break
-                if len(key) > 0 and key not in self.shapes:
-                    print('loadTest2() key={}'.format(key), file=Life.DBG_FILE)
+        self.printShapes()
+    '''
 
     def loadTest1(self):
         rOff, cOff = 10, 5
