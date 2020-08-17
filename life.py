@@ -43,9 +43,10 @@ class Life(object):
         print('nCols={}'.format(self.nCols), file=Life.DBG_FILE)
         print(file=Life.DBG_FILE)
         self.clear()
-        self.parse()
-        self.addShape('1-2-3')
-        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+#        self.parse()
+#        self.addShape('1-2-3')
+#        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+        self.printCells2()
 
     def addShape(self, key):
         rOff, cOff = 0, 0
@@ -106,7 +107,7 @@ class Life(object):
                     print(d, file=Life.DBG_FILE)
         print('printShapes(END)', file=Life.DBG_FILE)
 
-    '''
+#    '''
     def loadTest1(self):
         rOff, cOff = 10, 5
         r = int(self.nRows/2 - 1 + rOff)
@@ -126,7 +127,7 @@ class Life(object):
         self.cells[r][c+1]   = 1
         self.cells[r+1][c-1] = 1
         self.done.append(self.cells)
-    '''
+#    '''
 
     def run(self):#            print('{}'.format(c), end=' ', flush=True)
         b, c, s = 0, '', []
@@ -203,7 +204,8 @@ class Life(object):
     def update(self, pc=1):
         self.updateCells()
         self.done.append(self.cells)
-        if pc == 1: self.printCells('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+#        if pc == 1: self.printCells('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+        if pc == 1: self.printCells2()
         
     def updateCells(self, dbg=0):
         cells = []
@@ -219,7 +221,20 @@ class Life(object):
             cells.append(tmp)
         self.cells = cells
 
+    def printCells2(self):
+        for r in range(self.nRows):
+            for c in range(self.nCols): #r
+                if self.cells[r][c] == 0:
+                    self.prints(' ', r+1, c+1, self.C_DEAD)
+#                    print(' ', file=Life.DBG_FILE, end='')
+                else:
+                    self.prints(' ', r+1, c+1, self.C_ALIVE)
+#                    print('X', file=Life.DBG_FILE, end='')
+#            print(file=Life.DBG_FILE)
+#        print(file=Life.DBG_FILE)
+
     def printCells(self, reason=''):
+        exit()
         liveCount = 0
         if len(reason) > 0: print(reason, file=Life.DBG_FILE)
         for r in range(len(self.cells)):
@@ -257,9 +272,9 @@ class Life(object):
         self.prints('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), len(self.cells), 0, self.C_TEXT, self.STYLES['NORMAL'])
         print('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), file=Life.DBG_FILE)
 
-    def prints(self, s, row, col, style, bstyle, dbg=0):
-        if dbg: print('{}'.format(s), file=Life.DBG_FILE, end='')
-        print(Life.CSI + bstyle + style + Life.CSI + '{};{}H{}'.format(row + 1, col + 1, str(s)), end='')
+    def prints(self, s, row, col, style, dbg=0):
+#        if dbg: print('{}'.format(s), file=Life.DBG_FILE, end='')
+        print(Life.CSI + style + Life.CSI + '{};{}H{}'.format(row, col, s), end='')
 
     def getColor(self, FG, BG):
         return '3' + self.COLORS[FG] + ';4' + self.COLORS[BG] + 'm'
