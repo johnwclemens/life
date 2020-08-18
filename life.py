@@ -1,23 +1,76 @@
-import os
-import sys
-import msvcrt
-getwch = msvcrt.getwch
-import colorama
-sys.path.insert(0, os.path.abspath('../lib'))
-import cmdArgs
+import pyglet
+from pyglet import shapes
+from pyglet.window import event
+from pyglet.window import key
 
 class Life(object):
-    CSI = '\033\133'
+    def __init__(self, window):
+        self.ALIVE = (100, 192, 100)
+        self.DEAD = (90, 16, 26)
+        self.window = window
+        self.batch = pyglet.graphics.Batch()
+        (self.cells, self.lines) = self.grid(10, 7, 20, 20, 10, 5)
+        self.addShape()
+
+    def grid(self, n=100, m=70, w=10, h=10, p=0, q=0):
+        cells, lines = [], []
+        for i in range(n):
+            tmp = []
+            for j in range(m):
+                tmp.append(shapes.Rectangle(i*w+p, j*h+q, w, h, color=self.DEAD, batch=self.batch))
+            cells.append(tmp)
+        for i in range(n+1):
+            lines.append(shapes.Line(i*w+p, q, i*w+p, m*h+q, width=1, color=(255, 255, 255), batch=self.batch))
+        for j in range(m+1):
+            lines.append(shapes.Line(p, j*h+q, n*w+p, j*h+q, width=1, color=(255, 255, 255), batch=self.batch))
+        return (cells, lines)
+
+    def addShape(self):
+        self.cells[2][0].color = self.ALIVE
+        self.cells[0][1].color = self.ALIVE
+        self.cells[1][1].color = self.ALIVE
+        self.cells[2][1].color = self.ALIVE
+        self.cells[1][2].color = self.ALIVE
+
+    def on_draw(self):
+        self.window.clear()
+        self.batch.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == key.Q and modifiers == key.MOD_CTRL: exit()
+        if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
+        else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
+
+window = pyglet.window.Window(1024, 714) #move to Life class?
+
+@window.event
+def on_draw():
+    life.on_draw()
+
+@window.event
+def on_key_press(symbol, modifiers):
+    life.on_key_press(symbol, modifiers)
+
+if __name__ == "__main__":
+    life = Life(window)
+    pyglet.app.run()
+
+'''
+import sys, os
+sys.path.insert(0, os.path.abspath('../lib'))
+import cmdArgs
+import pyglet
+from pyglet import shapes
+from pyglet.window import event
+from pyglet.window import key
+
+class Life(object):
     DBG_NAME = "Life.dbg"
     DBG_FILE = open(DBG_NAME, "w")
 
     def __init__(self): #147 240 @ 8x8
-        colorama.init(autoreset=True)
-        self.COLORS = { 'BLACK':'0', 'RED':'1', 'GREEN':'2', 'YELLOW':'3', 'BLUE':'4', 'MAGENTA':'5', 'CYAN':'6', 'WHITE':'7' }
-        self.STYLES = {'NORMAL':'22;', 'BRIGHT':'1;'}
-        self.C_ALIVE = self.getColor('WHITE', 'YELLOW')
-        self.C_DEAD  = self.getColor('RED', 'BLACK')
-        self.C_TEXT  = self.getColor('WHITE', 'BLACK')
+        self.ALIVE = (100, 192, 100)
+        self.DEAD = (90, 16, 26)
         self.DATA_SET = set('.*')
         self.XLATE = str.maketrans('.*', '01')
         print('DATA_SET={} XLATE={}'.format(self.DATA_SET, self.XLATE), file=Life.DBG_FILE)
@@ -42,11 +95,30 @@ class Life(object):
             self.nCols = int(self.argMap['c'][0])
         print('nCols={}'.format(self.nCols), file=Life.DBG_FILE)
         print(file=Life.DBG_FILE)
-        self.clear()
-#        self.parse()
+#        self.clear()
+        self.parse()
 #        self.addShape('1-2-3')
-#        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
-        self.printCells2()
+        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+
+    def grid(self, n=100, m=70, w=10, h=10, p=0, q=0):
+        cells, lines = [], []
+        for i in range(n):
+            tmp = []
+            for j in range(m):
+                tmp.append(shapes.Rectangle(i*w+p, j*h+q, w, h, color=DEAD, batch=batch))
+            cells.append(tmp)
+        for i in range(n+1):
+            lines.append(shapes.Line(i*w+p, q, i*w+p, m*h+q, width=1, color=(255, 255, 255), batch=batch))
+        for j in range(m+1):
+            lines.append(shapes.Line(p, j*h+q, n*w+p, j*h+q, width=1, color=(255, 255, 255), batch=batch))
+        return (cells, lines)
+
+    def addShape():
+        cells[2][0].color = ALIVE
+        cells[0][1].color = ALIVE
+        cells[1][1].color = ALIVE
+        cells[2][1].color = ALIVE
+        cells[1][2].color = ALIVE
 
     def addShape(self, key):
         rOff, cOff = 0, 0
@@ -107,7 +179,6 @@ class Life(object):
                     print(d, file=Life.DBG_FILE)
         print('printShapes(END)', file=Life.DBG_FILE)
 
-#    '''
     def loadTest1(self):
         rOff, cOff = 10, 5
         r = int(self.nRows/2 - 1 + rOff)
@@ -127,7 +198,6 @@ class Life(object):
         self.cells[r][c+1]   = 1
         self.cells[r+1][c-1] = 1
         self.done.append(self.cells)
-#    '''
 
     def run(self):#            print('{}'.format(c), end=' ', flush=True)
         b, c, s = 0, '', []
@@ -140,15 +210,6 @@ class Life(object):
             elif b == 71 or b == 103:            self.goTo()   # c == 'G' or c == 'g'
             elif b == 74 or b == 106:            self.jump()   # c == 'J' or c == 'j'
             elif b == 81 or b == 113: break                    # c == 'Q' or c == 'q'
-            
-    def clear(self):
-        self.clearScreen()
-        self.clearCells()
-
-    @staticmethod
-    def clearScreen(arg=2, file=None, reason=None, dbg=0):
-        if dbg: print('clearScreen() arg={} file={} reason={}'.format(arg, file, reason), file=Life.DBG_FILE)
-        print(Life.CSI + '{}J'.format(arg), file=file)
 
     def clearCells(self):
         self.cells = []
@@ -221,29 +282,14 @@ class Life(object):
             cells.append(tmp)
         self.cells = cells
 
-    def printCells2(self):
-        for r in range(self.nRows):
-            for c in range(self.nCols): #r
-                if self.cells[r][c] == 0:
-                    self.prints(' ', r+1, c+1, self.C_DEAD)
-#                    print(' ', file=Life.DBG_FILE, end='')
-                else:
-                    self.prints(' ', r+1, c+1, self.C_ALIVE)
-#                    print('X', file=Life.DBG_FILE, end='')
-#            print(file=Life.DBG_FILE)
-#        print(file=Life.DBG_FILE)
-
     def printCells(self, reason=''):
-        exit()
         liveCount = 0
         if len(reason) > 0: print(reason, file=Life.DBG_FILE)
-        for r in range(len(self.cells)):
-            for c in range(len(self.cells[0])): #r
+        for r in range(self.nRows):
+            for c in range(self.nCols):
                 if self.cells[r][c] == 0:
-                    self.prints(' ', r, c, self.C_DEAD, self.STYLES['NORMAL'])
                     print(' ', file=Life.DBG_FILE, end='')
                 else:
-                    self.prints(' ', r, c, self.C_ALIVE, self.STYLES['BRIGHT'])
                     print('X', file=Life.DBG_FILE, end='')
                     liveCount += 1
             print(file=Life.DBG_FILE)
@@ -269,29 +315,14 @@ class Life(object):
         self.stats['S_COUNT'] = liveCount
         self.stats['S_SIZE'] = len(self.cells) * len(self.cells[0]) #r
         if liveCount != 0: self.stats['S_INV_DNSTY'] = self.stats['S_SIZE'] // self.stats['S_COUNT']
-        self.prints('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), len(self.cells), 0, self.C_TEXT, self.STYLES['NORMAL'])
+#        self.prints('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), len(self.cells), 0, self.C_TEXT, self.STYLES['NORMAL'])
         print('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), file=Life.DBG_FILE)
-
-    def prints(self, s, row, col, style, dbg=0):
-#        if dbg: print('{}'.format(s), file=Life.DBG_FILE, end='')
-        print(Life.CSI + style + Life.CSI + '{};{}H{}'.format(row, col, s), end='')
-
-    def getColor(self, FG, BG):
-        return '3' + self.COLORS[FG] + ';4' + self.COLORS[BG] + 'm'
 
 def main():
     life = Life()
-    life.run()
+#    life.run()
     
 if __name__ == "__main__":
+    pyglet.app.run()
     main()
-
-'''
-Colorama doc
-ESC [ y;x H     # position cursor at x across, y down
-ESC [ y;x f     # position cursor at x across, y down
-ESC [ n A       # move cursor n lines up
-ESC [ n B       # move cursor n lines down
-ESC [ n C       # move cursor n characters forward
-ESC [ n D       # move cursor n characters backward
 '''
