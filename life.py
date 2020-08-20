@@ -18,15 +18,18 @@ class Life(object):
         self.done = []
         self.undone = []
         self.shapes = {}
+        self.stats = {}
+        self.stats['S_INV_DNSTY'] = -1
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
-        self.nRows = 43 #80 #7
-        self.nCols = 79#140#11
-        self.cellH = 20
-        self.cellW = 20
+        self.nRows = 115#235#43 #80 #7
+        self.nCols = 175#383#79#140#11
+        self.shapeKey = 'TestMe'
+        self.cellH = 10
+        self.cellW = 10
         self.height = self.nRows * self.cellH + 4
         self.width  = self.nCols * self.cellW + 4
-        self.fullScreen = False
+        self.fullScreen = True
         self.inName = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'f' in self.argMap and len(self.argMap['f']) > 0:
@@ -38,6 +41,9 @@ class Life(object):
         if 'c' in self.argMap and len(self.argMap['c']) > 0:
             self.nCols = int(self.argMap['c'][0])
         print('nCols={}'.format(self.nCols), file=DBG_FILE)
+        if 's' in self.argMap and len(self.argMap['s']) > 0:
+            self.shapeKey = self.argMap['s'][0]
+        print('shapeKey={}'.format(self.shapeKey), file=DBG_FILE)
         print('cellH={}'.format(self.cellH), file=DBG_FILE)
         print('cellW={}'.format(self.cellW), file=DBG_FILE)
         print('height={}'.format(self.height), file=DBG_FILE)
@@ -45,12 +51,15 @@ class Life(object):
         print(file=DBG_FILE)
 #        self.clear()
         self.window = window
-        self.window.set_size(self.width, self.height)
+        if self.fullScreen == False: self.window.set_size(self.width, self.height)
+        else: window.set_fullscreen()
         self.window.set_visible()
         self.batch = pyglet.graphics.Batch()
         (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH, p=1, q=0)
         self.parse()
-        self.addShape1()
+        self.addShape(self.shapeKey)
+#        if len(self.shapeKey) > 0: self.addShape(self.shapeKey)
+#        else: self.addShape1(r=40)
 #        self.addShape('30P5H2V0')#2-glider mess') #25P3H1V0.1')
 #        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
@@ -71,9 +80,9 @@ class Life(object):
             else:         lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(255, 30, 30), batch=self.batch))
         return (data, cells, lines)
 
-    def addShape1(self):
-        c = int(self.nCols/2) - 15
-        r = int(self.nRows/2)
+    def addShape2(self, c=None, r=None):
+        if c is None: c = int(self.nCols/2)
+        if r is None: r = int(self.nRows/2)
 #        self.data[r+2][c+0] = 1
         self.data[r+1][c+0] = 1
         self.data[r+0][c-1] = 1
@@ -86,16 +95,16 @@ class Life(object):
         self.cells[r+0][c+0].color = self.ALIVE
         self.cells[r+0][c+1].color = self.ALIVE
         self.cells[r-1][c+1].color = self.ALIVE
-        self.printData('addShape() r={} c={}'.format(r, c))
+        self.printData('addShape2() r={} c={}'.format(r, c))
 
     def addShape(self, key):
-        p, q = -15, 0
+        p, q = 0, -20
         c = int(self.nCols/2 - 1 - p)
         r = int(self.nRows/2 - 1 + q)
         v = self.shapes[key]
         data = v[0]
-        print('addShape2({},{}) key={}'.format(r, c, key), file=DBG_FILE)
-        print('addShape2({},{}) v={}'.format(r, c, v), file=DBG_FILE)
+        print('addShape({},{}) key={}'.format(r, c, key), file=DBG_FILE)
+        print('addShape({},{}) v={}'.format(r, c, v), file=DBG_FILE)
         if data is None: return
         for j in range(len(data)):
             print('[{}]{}'.format(j, data[j]), file=DBG_FILE)
@@ -104,9 +113,9 @@ class Life(object):
                 else:               self.cells[r-j][c+i].color = self.DEAD
                 self.data[r-j][c+i] = int(data[j][i])
         self.done.append(self.data)
-        self.printData('addShape2() r={} c={}'.format(r, c))
+        self.printData('addShape() r={} c={}'.format(r, c))
 
-    def run(self):
+    def run(self):#            self.on_draw()?
         for i in range(10): self.update()
 
     def update(self, pd=1):
@@ -159,7 +168,14 @@ class Life(object):
                     liveCount += 1
             print(file=DBG_FILE)
         print(file=DBG_FILE)
-#        self.printStats(liveCount)
+        self.displayStats(liveCount)
+
+    def displayStats(self, liveCount):
+        self.stats['S_COUNT'] = liveCount
+        self.stats['S_SIZE'] = len(self.cells) * len(self.cells[0])
+        if liveCount != 0: self.stats['S_INV_DNSTY'] = self.stats['S_SIZE'] // self.stats['S_COUNT']
+#        self.prints('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), len(self.cells), 0, self.C_TEXT, self.STYLES['NORMAL'])
+        print('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), file=DBG_FILE)
 
     def parse(self, dbg=1):
         print('parse(BGN)', file=DBG_FILE)
@@ -181,7 +197,7 @@ class Life(object):
                             v = [None, info, None, None]
                             self.shapes[key] = v
                             state = 1
-#                            print('{:>50} | state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=DBG_FILE)
+                            print('{:>50} | state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=DBG_FILE)
                     elif dataSet <= self.DATA_SET: #state > 0
 #                        print(line, file=DBG_FILE)
                         line = line.translate(self.XLATE)
@@ -195,8 +211,34 @@ class Life(object):
                         state = 0
                         if dbg: print('key=[{}] size=[{}x{}]\n[{}]'.format(key, len(data), len(data[0]), info), file=DBG_FILE)
                         data = []
-#        self.printShapes()
         print('parse(END)', file=DBG_FILE)
+#        if dbg: self.printShapes()
+
+    def printShapes(self):
+        print('printShapes(BGN) len={}'.format(len(self.shapes)), file=DBG_FILE)
+        for k in self.shapes:
+            v = self.shapes[k]
+            data = v[0]
+            if data != None:
+                print('[{}]'.format(k), file=DBG_FILE)
+                for d in data:
+                    print(d, file=DBG_FILE)
+        print('printShapes(END)', file=DBG_FILE)
+
+    def toggleFullScreen(self):
+        if   self.fullScreen == True: self.fullScreen = False
+        else:                         self.fullScreen = True
+        self.window.set_fullscreen(self.fullScreen)
+
+####################################################################################################
+
+    def on_key_press(self, symbol, modifiers):
+        if   symbol == key.Q and modifiers == key.MOD_CTRL: exit()
+        elif symbol == key.SPACE:                           self.update()
+        elif symbol == key.ENTER:                           self.run()
+        elif symbol == key.F and modifiers == key.MOD_CTRL: self.toggleFullScreen()
+        if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
+        else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
 
     def on_draw(self):
         self.window.clear()
@@ -205,16 +247,10 @@ class Life(object):
     def on_resize(self, width, height):
         print('on_resize() width={} height={}'.format(width, height), flush=True)
 
-    def on_key_press(self, symbol, modifiers):
-        if   symbol == key.Q and modifiers == key.MOD_CTRL: exit()
-        elif symbol == key.SPACE:                           self.update()
-        elif symbol == key.ENTER:                           self.run()
-        elif symbol == key.F and modifiers == key.MOD_CTRL:
-            if   self.fullScreen == True: self.fullScreen = False
-            else:                         self.fullScreen = True
-            self.window.set_fullscreen(self.fullScreen)
-        if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
-        else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
+####################################################################################################
+
+@window.event
+def on_key_press(symbol, modifiers): life.on_key_press(symbol, modifiers)
 
 @window.event
 def on_draw(): life.on_draw()
@@ -222,8 +258,7 @@ def on_draw(): life.on_draw()
 @window.event
 def on_resize(width, height): life.on_resize(width, height)
 
-@window.event
-def on_key_press(symbol, modifiers): life.on_key_press(symbol, modifiers)
+####################################################################################################
 
 if __name__ == "__main__":
     DBG_FILE = open("Life.dbg", 'w')
