@@ -179,26 +179,33 @@ class Life(object):
 
     def parse(self, dbg=1):
         print('parse(BGN)', file=DBG_FILE)
-        data, key, info, state = [], '', '', 0
+        data, key, state = [], '', 0
+        info1 = info2 = info3 = ''
         with open(self.inName, 'r') as self.inFile:
             for line in self.inFile:
                 line = line.strip()
                 if len(line) > 0:
                     dataSet = set(line)
-                    if line[0] == ':': #state <= 1
+                    if line[0] == ':':
                         p = line.find(':', 1)
                         if p != -1:
                             if state == 2:
                                 self.shapes[key][0] = data
-                                if dbg: print('key=[{}] size=[{}x{}]\n[{}]'.format(key, len(data), len(data[0]), info), file=DBG_FILE)
+                                if dbg:
+                                    print('key=[{}] size=[{}x{}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])), file=DBG_FILE)
+                                    print('info1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(info1, info2, info3), file=DBG_FILE)
+                                info1 = info2 = info3 = ''
                             data = []
                             key = line[1:p]
-                            info = line[p+1:].strip()
-                            v = [None, info, None, None]
+                            info1 = line[p+1:].strip()
+                            v = [None, info1, None, None]
                             self.shapes[key] = v
                             state = 1
-                            print('{:>50} | state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=DBG_FILE)
-                    elif dataSet <= self.DATA_SET: #state > 0
+                            print('[{:.^50}] state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=DBG_FILE)
+                    elif dataSet >  self.DATA_SET:
+                        info2 += line
+                        print('#info2={}'.format(info2), file=DBG_FILE)
+                    elif dataSet <= self.DATA_SET:
 #                        print(line, file=DBG_FILE)
                         line = line.translate(self.XLATE)
                         tmp = []
@@ -207,23 +214,31 @@ class Life(object):
                         state = 2
                         if dbg: print('    {}'.format(line), file=DBG_FILE)
                     elif state == 2:
+                        info3 += line
                         self.shapes[key][0] = data
                         state = 0
-                        if dbg: print('key=[{}] size=[{}x{}]\n[{}]'.format(key, len(data), len(data[0]), info), file=DBG_FILE)
+                        if dbg:
+                            print('key=[{}] size=[{}x{}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])), file=DBG_FILE)
+                            print('info1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(info1, info2, info3), file=DBG_FILE)
                         data = []
-        print('parse(END)', file=DBG_FILE)
-#        if dbg: self.printShapes()
+        print('parse(END) len(shapes)={}'.format(len(self.shapes)), file=DBG_FILE)
+        if dbg: self.printShapes()
 
     def printShapes(self):
         print('printShapes(BGN) len={}'.format(len(self.shapes)), file=DBG_FILE)
+        noneKeys, dataKeys = [], []
         for k in self.shapes:
             v = self.shapes[k]
             data = v[0]
             if data != None:
                 print('[{}]'.format(k), file=DBG_FILE)
-                for d in data:
-                    print(d, file=DBG_FILE)
-        print('printShapes(END)', file=DBG_FILE)
+                dataKeys.append(k)
+#                for d in data:
+#                    print(d, file=DBG_FILE)
+            else: noneKeys.append(k)
+        for k in noneKeys: print('noneKeys=[{}]\ninfo1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(k, self.shapes[k][1], self.shapes[k][2], self.shapes[k][3]), file=DBG_FILE)
+        for k in dataKeys: print('dataKeys=[{}] size=[{}x{}={}]'.format(k, len(self.shapes[k][0]), len(self.shapes[k][0][0]), len(self.shapes[k][0])*len(self.shapes[k][0][0])), file=DBG_FILE)
+        print('printShapes(END) len(shapes)={} len(noneKeys)={} len(valKeys)={}'.format(len(self.shapes), len(noneKeys), len(dataKeys)), file=DBG_FILE)
 
     def toggleFullScreen(self):
         if   self.fullScreen == True: self.fullScreen = False
