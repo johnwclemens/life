@@ -1,4 +1,5 @@
 import pyglet
+import pyglet.gl
 from pyglet import shapes
 from pyglet.window import event
 from pyglet.window import key
@@ -6,7 +7,14 @@ import sys, os
 sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
 
-window = pyglet.window.Window(resizable=True, visible=False) #move to Life class? #fullscreen=True
+#event_logger = pyglet.window.event.WindowEventLogger()
+#window.push_handlers(event_logger)
+#window = pyglet.window.Window(resizable=True, visible=False) #move to Life class? #fullscreen=True
+
+screen_number = 0
+display = pyglet.canvas.get_display()
+screen = display.get_screens()[screen_number]
+window = pyglet.window.Window(resizable=True, screen=screen)
 
 class Life(object):
     def __init__(self, window):
@@ -15,11 +23,11 @@ class Life(object):
         self.DATA_SET = set('.*')
         self.XLATE = str.maketrans('.*', '01')
         print('DATA_SET={} XLATE={}'.format(self.DATA_SET, self.XLATE), file=DBG_FILE)
+        self.pop = 0
         self.done = []
         self.undone = []
         self.shapes = {}
         self.stats = {}
-        self.stats['S_INV_DNSTY'] = -1
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
         self.nRows = 115#235#43 #80 #7
@@ -29,7 +37,7 @@ class Life(object):
         self.cellW = 10
         self.height = self.nRows * self.cellH + 4
         self.width  = self.nCols * self.cellW + 4
-        self.fullScreen = True
+        self.fullScreen = False
         self.inName = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'f' in self.argMap and len(self.argMap['f']) > 0:
@@ -49,19 +57,16 @@ class Life(object):
         print('height={}'.format(self.height), file=DBG_FILE)
         print('width={}'.format(self.width), file=DBG_FILE)
         print(file=DBG_FILE)
-#        self.clear()
         self.window = window
         if self.fullScreen == False: self.window.set_size(self.width, self.height)
         else: window.set_fullscreen()
         self.window.set_visible()
         self.batch = pyglet.graphics.Batch()
+        print('batch={}'.format(self.batch), file=DBG_FILE)
         (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH, p=1, q=0)
         self.parse()
         self.addShape(self.shapeKey)
-#        if len(self.shapeKey) > 0: self.addShape(self.shapeKey)
-#        else: self.addShape1(r=40)
-#        self.addShape('30P5H2V0')#2-glider mess') #25P3H1V0.1')
-#        self.printCells('init() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+        self.updateStats()
 
     def grid(self, c=100, r=70, w=10, h=10, p=0, q=0): #c=nCols r=nRows w=cellW h=cellH p=xOff q yOff
         data, cells, lines = [], [], []
@@ -83,13 +88,11 @@ class Life(object):
     def addShape2(self, c=None, r=None):
         if c is None: c = int(self.nCols/2)
         if r is None: r = int(self.nRows/2)
-#        self.data[r+2][c+0] = 1
         self.data[r+1][c+0] = 1
         self.data[r+0][c-1] = 1
         self.data[r+0][c+0] = 1
         self.data[r+0][c+1] = 1
         self.data[r-1][c+1] = 1
-#        self.cells[r+2][c+0].color = self.ALIVE
         self.cells[r+1][c+0].color = self.ALIVE
         self.cells[r+0][c-1].color = self.ALIVE
         self.cells[r+0][c+0].color = self.ALIVE
@@ -109,28 +112,29 @@ class Life(object):
         for j in range(len(data)):
             print('[{}]{}'.format(j, data[j]), file=DBG_FILE)
             for i in range(len(data[j])):
-                if data[j][i] == 1: self.cells[r-j][c+i].color = self.ALIVE
-                else:               self.cells[r-j][c+i].color = self.DEAD
+                if data[j][i] == 0: self.cells[r-j][c+i].color = self.DEAD
+                else:
+                    self.pop += 1
+                    self.cells[r-j][c+i].color = self.ALIVE
                 self.data[r-j][c+i] = int(data[j][i])
         self.done.append(self.data)
         self.printData('addShape() r={} c={}'.format(r, c))
 
-    def run(self):#            self.on_draw()?
-        for i in range(10): self.update()
-
-    def update(self, pd=1):
+    def update(self, dbg=1):
         self.updateDataCells()
         self.done.append(self.data)
-        if pd == 1: self.printData('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+        self.updateStats()
+        if dbg: self.printData('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
     def updateDataCells(self, dbg=0):
-        data = []
+        data, self.pop = [], 0
         for r in range(self.nRows):
             tmp = []
             for c in range(self.nCols):
                 n = self.getNeighbors(r, c)
                 if dbg: print('{}'.format(n), file=DBG_FILE, end='')
                 if self.isAlive(r, c) == 1:
+                    self.pop += 1
                     if n == 2 or n == 3: tmp.append(1); self.cells[r][c].color = self.ALIVE
                     else:                tmp.append(0); self.cells[r][c].color = self.DEAD
                 elif n == 3:             tmp.append(1); self.cells[r][c].color = self.ALIVE
@@ -156,7 +160,6 @@ class Life(object):
         return 1
 
     def printData(self, reason=''):
-        liveCount = 0
 #        print('printData({}) data[{}x{}={}]'.format(reason, len(self.data), len(self.data[0]), len(self.data)*len(self.data[0])), file=DBG_FILE)
         print('printData({}) data[{}x{}={}]'.format(reason, self.nRows, self.nCols, self.nRows*self.nCols), file=DBG_FILE)
         for r in range(self.nRows-1, -1, -1):
@@ -165,19 +168,27 @@ class Life(object):
                     print(' ', file=DBG_FILE, end='')
                 else:
                     print('X', file=DBG_FILE, end='')
-                    liveCount += 1
             print(file=DBG_FILE)
         print(file=DBG_FILE)
-        self.displayStats(liveCount)
 
-    def displayStats(self, liveCount):
-        self.stats['S_COUNT'] = liveCount
-        self.stats['S_SIZE'] = len(self.cells) * len(self.cells[0])
-        if liveCount != 0: self.stats['S_INV_DNSTY'] = self.stats['S_SIZE'] // self.stats['S_COUNT']
-#        self.prints('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), len(self.cells), 0, self.C_TEXT, self.STYLES['NORMAL'])
-        print('{} {} {} {}'.format(len(self.done)-1, self.stats['S_COUNT'], self.stats['S_SIZE'], self.stats['S_INV_DNSTY']), file=DBG_FILE)
+    def updateStats(self):
+        assert self.pop >= 0
+        assert self.nRows == len(self.cells)
+        assert self.nCols == len(self.cells[0])
+        self.stats['S_POP'] = self.pop
+        self.stats['S_GEN'] = len(self.done) - 1
+        self.stats['S_AREA'] = self.nRows * self.nCols
+        self.stats['S_DENS'] = 100 * self.stats['S_POP'] / self.stats['S_AREA']
+        if self.pop > 0: self.stats['S_IDENS'] = int(self.stats['S_AREA'] / self.stats['S_POP'])
+        else:            self.stats['S_IDENS'] = -1
+        self.displayStats()
 
-    def parse(self, dbg=1):
+    def displayStats(self, dbg=1):
+        txt = 'Gen={} Pop={} Area={:,} Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.stats['S_DENS'], self.stats['S_IDENS'])
+        self.window.set_caption(txt)
+        if dbg: print('{}'.format(txt), file=DBG_FILE)
+
+    def parse(self, dbg=0):
         print('parse(BGN)', file=DBG_FILE)
         data, key, state = [], '', 0
         info1 = info2 = info3 = ''
@@ -192,7 +203,7 @@ class Life(object):
                             if state == 2:
                                 self.shapes[key][0] = data
                                 if dbg:
-                                    print('key=[{}] size=[{}x{}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])), file=DBG_FILE)
+                                    print('key=[{}] size=[{} x {}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])), file=DBG_FILE)
                                     print('info1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(info1, info2, info3), file=DBG_FILE)
                                 info1 = info2 = info3 = ''
                             data = []
@@ -201,12 +212,11 @@ class Life(object):
                             v = [None, info1, None, None]
                             self.shapes[key] = v
                             state = 1
-                            print('[{:.^50}] state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=DBG_FILE)
+                            if dbg: print('[{:.^50}] state={} v0={} v3={} v2={} v1={}'.format(key, state, v[0], v[3], v[2], v[1]), file=DBG_FILE)
                     elif dataSet >  self.DATA_SET:
                         info2 += line
-                        print('#info2={}'.format(info2), file=DBG_FILE)
+                        if dbg: print('#info2={}'.format(info2), file=DBG_FILE)
                     elif dataSet <= self.DATA_SET:
-#                        print(line, file=DBG_FILE)
                         line = line.translate(self.XLATE)
                         tmp = []
                         for c in line: tmp.append(int(c)) #list comprehension?
@@ -218,7 +228,7 @@ class Life(object):
                         self.shapes[key][0] = data
                         state = 0
                         if dbg:
-                            print('key=[{}] size=[{}x{}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])), file=DBG_FILE)
+                            print('key=[{}] size=[{} x {}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])), file=DBG_FILE)
                             print('info1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(info1, info2, info3), file=DBG_FILE)
                         data = []
         print('parse(END) len(shapes)={}'.format(len(self.shapes)), file=DBG_FILE)
@@ -237,7 +247,7 @@ class Life(object):
 #                    print(d, file=DBG_FILE)
             else: noneKeys.append(k)
         for k in noneKeys: print('noneKeys=[{}]\ninfo1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(k, self.shapes[k][1], self.shapes[k][2], self.shapes[k][3]), file=DBG_FILE)
-        for k in dataKeys: print('dataKeys=[{}] size=[{}x{}={}]'.format(k, len(self.shapes[k][0]), len(self.shapes[k][0][0]), len(self.shapes[k][0])*len(self.shapes[k][0][0])), file=DBG_FILE)
+        for k in dataKeys: print('dataKeys=[{}] size=[{} x {}={}]'.format(k, len(self.shapes[k][0]), len(self.shapes[k][0][0]), len(self.shapes[k][0])*len(self.shapes[k][0][0])), file=DBG_FILE)
         print('printShapes(END) len(shapes)={} len(noneKeys)={} len(valKeys)={}'.format(len(self.shapes), len(noneKeys), len(dataKeys)), file=DBG_FILE)
 
     def toggleFullScreen(self):
@@ -246,14 +256,39 @@ class Life(object):
         self.window.set_fullscreen(self.fullScreen)
 
 ####################################################################################################
+    def run(self):
+        pyglet.clock.schedule_interval(self.update, 1/120.0)
+
+    def stop(self):
+        pyglet.clock.unschedule(self.update)
+####################################################################################################
 
     def on_key_press(self, symbol, modifiers):
         if   symbol == key.Q and modifiers == key.MOD_CTRL: exit()
         elif symbol == key.SPACE:                           self.update()
         elif symbol == key.ENTER:                           self.run()
+        elif symbol == key.BACKSPACE:                       self.stop()
         elif symbol == key.F and modifiers == key.MOD_CTRL: self.toggleFullScreen()
         if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
         else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
+
+#pyglet.window.mouse.LEFT
+#pyglet.window.mouse.MIDDLE
+#pyglet.window.mouse.RIGHT
+    def on_mouse_press(self, x, y, button, modifiers):
+        pass
+#        print('on_mouse_press() x={} y={} button={} modifiers={}'.format(x, y, button, modifiers), file=DBG_FILE)
+
+    def on_mouse_release(self, x, y, button, modifiers):
+        print('on_mouse_release() x={} y={} button={} modifiers={}'.format(x, y, button, modifiers), flush=True)#, file=DBG_FILE)
+        r, c = int(y/self.cellH), int(x/self.cellW)
+        print('on_mouse_release() data[{}][{}]={}'.format(r, c, self.data[r][c]), flush=True)#, file=DBG_FILE)
+        if  self.data[r][c] == 0:
+            self.data[r][c] = 1
+            self.cells[r][c].color = self.ALIVE
+        else:
+            self.data[r][c] = 0
+            self.cells[r][c].color = self.DEAD
 
     def on_draw(self):
         self.window.clear()
@@ -263,20 +298,24 @@ class Life(object):
         print('on_resize() width={} height={}'.format(width, height), flush=True)
 
 ####################################################################################################
-
 @window.event
 def on_key_press(symbol, modifiers): life.on_key_press(symbol, modifiers)
+
+@window.event
+def on_mouse_press(x, y, button, modifiers): life.on_mouse_press(x, y, button, modifiers)
+
+@window.event
+def on_mouse_release(x, y, button, modifiers): life.on_mouse_release(x, y, button, modifiers)
 
 @window.event
 def on_draw(): life.on_draw()
 
 @window.event
 def on_resize(width, height): life.on_resize(width, height)
-
 ####################################################################################################
 
 if __name__ == "__main__":
-    DBG_FILE = open("Life.dbg", 'w')
+    DBG_FILE = open(sys.argv[0] + ".log", 'w')
     life = Life(window)
     pyglet.app.run()
 
