@@ -3,6 +3,21 @@ from pyglet import shapes
 from pyglet.window import event
 from pyglet.window import key
 
+class HelloWorldWindow(pyglet.window.Window):
+    def __init__(self):
+        super(HelloWorldWindow, self).__init__()
+
+        self.label = pyglet.text.Label('Hello, world!')
+
+    def on_draw(self):
+        self.clear()
+        self.label.draw()
+
+if __name__ == '__main__':
+    window = HelloWorldWindow()
+    pyglet.app.run()
+
+'''
 ALIVE = (100, 192, 100)
 DEAD = (90, 16, 26)
 
@@ -46,3 +61,4 @@ def on_draw():
 
 if __name__ == "__main__":
     pyglet.app.run()
+'''

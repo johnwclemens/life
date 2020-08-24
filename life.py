@@ -118,9 +118,9 @@ class Life(object):
         if c is None: c = int(self.nCols/2)
         if r is None: r = int(self.nRows/2)
         print('\n:BGN: addShape2() c={} r={}'.format(c, r), file=DBG_FILE)
-        self.addCell(c, r+1)
+        self.addCell(c,   r+1)
         self.addCell(c-1, r)
-        self.addCell(c, r)
+        self.addCell(c,   r)
         self.addCell(c+1, r)
         self.addCell(c+1, r-1)
         self.printData('addShape2() c={} r={}'.format(c, r))
@@ -132,6 +132,13 @@ class Life(object):
         self.data[r][c] = 1
         self.cells[r][c].color = self.ALIVE
         print(':END: addCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
+
+    def removeCell(self, c, r):
+        print('\n:BGN: removeCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
+        if self.data[r][c] == 1: self.pop -= 1
+        self.data[r][c] = 0
+        self.cells[r][c].color = self.DEAD
+        print(':END: removeCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
 
     def update(self, dbg=1):
         self.updateDataCells()
@@ -157,27 +164,6 @@ class Life(object):
             else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD;  self.pop -= 1
         elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE; self.pop += 1
         else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD
-
-    def updateDataCell_GOOD(self, c, r, data, dbg=1):
-        n = self.getNeighborCount(c, r)
-        if dbg:
-            if n == 0: print(' ', file=DBG_FILE, end='')
-            else: print('{}'.format(n), file=DBG_FILE, end='')
-        if self.data[r][c] == 1: #                if self.isAlive(r, c) == 1:
-            if n == 2 or n == 3:
-                data[r][c] = 1
-                self.cells[r][c].color = self.ALIVE
-            else:
-                data[r][c] = 0
-                self.cells[r][c].color = self.DEAD
-                self.pop -= 1
-        elif n == 3:
-            data[r][c] = 1
-            self.cells[r][c].color = self.ALIVE
-            self.pop += 1
-        else:
-            data[r][c] = 0
-            self.cells[r][c].color = self.DEAD
 
     def getNeighborCount(self, c, r, dbg=0):
         n = 0
@@ -291,6 +277,11 @@ class Life(object):
         else:                         self.fullScreen = True
         self.window.set_fullscreen(self.fullScreen)
 
+    def toggleCell(self, c, r):
+        if self.data[r][c] == 0: self.addCell(c, r)
+        else: self.removeCell(c, r)
+        self.updateStats()
+
 ####################################################################################################
     def run(self):
         pyglet.clock.schedule_interval(self.update, 1/120.0)
@@ -303,9 +294,9 @@ class Life(object):
 #        if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
 #        else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
         if   symbol == key.Q and modifiers == key.MOD_CTRL: exit()
-        elif symbol == key.SPACE:                           self.update()
+        elif symbol == key.SPACE:                           self.stop()
         elif symbol == key.ENTER:                           self.run()
-        elif symbol == key.BACKSPACE:                       self.stop()
+        elif symbol == key.RIGHT:                           self.update()
         elif symbol == key.F and modifiers == key.MOD_CTRL: self.toggleFullScreen()
 
 #pyglet.window.mouse.LEFT
@@ -315,10 +306,11 @@ class Life(object):
 #        print('on_mouse_release() x={} y={} b={} m={}'.format(x, y, button, modifiers), flush=True)#, file=DBG_FILE)
         r, c = int(y/self.cellH), int(x/self.cellW)
         print('on_mouse_release() x={} y={} b={} m={} d[{}][{}]={}'.format(x, y, button, modifiers, r, c, self.data[r][c]), file=DBG_FILE)
-        if  self.data[r][c] == 0: self.addCell(c, r)
-        else:
-            self.data[r][c] = 0
-            self.cells[r][c].color = self.DEAD
+        self.toggleCell(c, r)
+#        if  self.data[r][c] == 0: self.addCell(c, r)
+#        else:
+#            self.data[r][c] = 0
+#            self.cells[r][c].color = self.DEAD
 
     def on_draw(self):
         self.window.clear()
