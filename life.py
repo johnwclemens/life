@@ -3,7 +3,7 @@ import pyglet.gl
 from pyglet import shapes
 from pyglet.window import event
 from pyglet.window import key
-import sys, os
+import sys, os, copy
 sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
 
@@ -91,12 +91,17 @@ class Life(object):
         r = int(self.nRows/2 - 1 + q)
         v = self.shapes[key]
         data = v[0]
-        print('\n:BGN: addShape() c={} r={} key={}'.format(c, r, key), file=DBG_FILE)
-        print('c={} r={} val={}'.format(c, r, v), file=DBG_FILE)
+        w, h = len(data[0]), len(data)
+        a = w * h
+        txt = 'addShape() c={} r={} key={} [{}x{}={}]'.format(c, r, key, w, h, a)
+        print('\n:BGN: {}'.format(txt), file=DBG_FILE)
+        print('info1={}'.format(v[1]), file=DBG_FILE)
+        if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
+        if v[3]: print('info3={}'.format(v[3]), file=DBG_FILE)
         if data is None: return
-        for j in range(len(data)):
-            print('[{}]'.format(j), file=DBG_FILE, end='')
-            for i in range(len(data[j])):
+        for j in range(h):
+            print('    ', file=DBG_FILE, end='')
+            for i in range(w):
                 print('{}'.format(data[j][i]), file=DBG_FILE, end='')
                 if data[j][i] == 0: self.cells[r-j][c+i].color = self.DEAD
                 else:
@@ -105,8 +110,8 @@ class Life(object):
                 self.data[r-j][c+i] = int(data[j][i])
             print(file=DBG_FILE)
         self.done.append(self.data)
-        self.printData('addShape() c={} r={}'.format(c, r))
-        print(':END: addShape() c={} r={}\n'.format(c, r), file=DBG_FILE)
+        self.printData('{}'.format(txt))
+        print(  ':END: {}\n'.format(txt), file=DBG_FILE)
 
     def addShape2(self, c=None, r=None):
         if c is None: c = int(self.nCols/2)
@@ -125,21 +130,29 @@ class Life(object):
         self.printData('addShape2() c={} r={}'.format(c, r))
         print(':END: addShape2() c={} r={}\n'.format(c, r))
 
+    def addCell(self, c, r):
+        print('\n:BGN: addCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
+        if self.data[r][c] == 0: self.pop += 1
+        self.data[r][c] = 1
+        self.cells[r][c].color = self.ALIVE
+        print(':END: addCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
+
     def update(self, dbg=1):
         self.updateDataCells()
         self.done.append(self.data)
         self.updateStats()
         if dbg: self.printData('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
-    def updateDataCells(self, dbg=0):
-        data, self.pop = [], 0
+    def updateDataCells_OLD(self, dbg=1):
+        data = []
         for r in range(self.nRows):
             tmp = []
             for c in range(self.nCols):
-                n = self.getNeighbors(r, c)
-                if dbg: print('{}'.format(n), file=DBG_FILE, end='')
-                if self.isAlive(r, c) == 1:
-                    self.pop += 1
+                n = self.getNeighborCount(c, r)
+                if dbg:
+                    if n == 0: print(' ', file=DBG_FILE, end='')
+                    else: print('{}'.format(n), file=DBG_FILE, end='')
+                if self.data[r][c] == 1: #                if self.isAlive(r, c) == 1:
                     if n == 2 or n == 3: tmp.append(1); self.cells[r][c].color = self.ALIVE
                     else:                tmp.append(0); self.cells[r][c].color = self.DEAD
                 elif n == 3:             tmp.append(1); self.cells[r][c].color = self.ALIVE
@@ -148,7 +161,36 @@ class Life(object):
             data.append(tmp)
         self.data = data
 
-    def getNeighbors(self, r, c, dbg=0):
+    def updateDataCells(self, dbg=1):
+        data = copy.deepcopy(self.data)
+        for r in range(self.nRows-1, -1, -1):
+            for c in range(self.nCols):
+                self.updateDataCell(c, r, data)
+            if dbg: print(file=DBG_FILE)
+        self.data = data
+
+    def updateDataCell(self, c, r, data, dbg=1):
+        n = self.getNeighborCount(c, r)
+        if dbg:
+            if n == 0: print(' ', file=DBG_FILE, end='')
+            else: print('{}'.format(n), file=DBG_FILE, end='')
+        if self.data[r][c] == 1: #                if self.isAlive(r, c) == 1:
+            if n == 2 or n == 3:
+                data[r][c] = 1
+                self.cells[r][c].color = self.ALIVE
+            else:
+                data[r][c] = 0
+                self.cells[r][c].color = self.DEAD
+                self.pop -= 1
+        elif n == 3:
+            data[r][c] = 1
+            self.cells[r][c].color = self.ALIVE
+            self.pop += 1
+        else:
+            data[r][c] = 0
+            self.cells[r][c].color = self.DEAD
+
+    def getNeighborCount(self, c, r, dbg=0):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
@@ -166,7 +208,7 @@ class Life(object):
 
     def printData(self, reason=''):
 #        print('printData({}) data[{}x{}={}]'.format(reason, len(self.data), len(self.data[0]), len(self.data)*len(self.data[0])), file=DBG_FILE)
-        print('printData({}) data[{}x{}={}]'.format(reason, self.nRows, self.nCols, self.nRows*self.nCols), file=DBG_FILE)
+        print('\n:BGN: printData({}) data[{}x{}={:,}]'.format(reason, self.nRows, self.nCols, self.nRows*self.nCols), file=DBG_FILE)
         for r in range(self.nRows-1, -1, -1):
             for c in range(self.nCols):
                 if self.data[r][c] == 0:
@@ -174,7 +216,7 @@ class Life(object):
                 else:
                     print('X', file=DBG_FILE, end='')
             print(file=DBG_FILE)
-        print(file=DBG_FILE)
+        print(':END: printData({}) data[{}x{}={:,}]\n'.format(reason, self.nRows, self.nCols, self.nRows*self.nCols), file=DBG_FILE)
 
     def updateStats(self):
         assert self.pop >= 0
@@ -283,10 +325,8 @@ class Life(object):
     def on_mouse_release(self, x, y, button, modifiers):
 #        print('on_mouse_release() x={} y={} b={} m={}'.format(x, y, button, modifiers), flush=True)#, file=DBG_FILE)
         r, c = int(y/self.cellH), int(x/self.cellW)
-        print('on_mouse_release() x={} y={} b={} m={} d[{}][{}]={}'.format(x, y, button, modifiers, r, c, self.data[r][c]), flush=True)#, file=DBG_FILE)
-        if  self.data[r][c] == 0:
-            self.data[r][c] = 1
-            self.cells[r][c].color = self.ALIVE
+        print('on_mouse_release() x={} y={} b={} m={} d[{}][{}]={}'.format(x, y, button, modifiers, r, c, self.data[r][c]), file=DBG_FILE)
+        if  self.data[r][c] == 0: self.addCell(c, r)
         else:
             self.data[r][c] = 0
             self.cells[r][c].color = self.DEAD
@@ -296,7 +336,7 @@ class Life(object):
         self.batch.draw()
 
     def on_resize(self, width, height):
-        print('on_resize() width={} height={}'.format(width, height), flush=True)
+        print('on_resize() width={} height={}'.format(width, height), file=DBG_FILE)
 
 ####################################################################################################
 @window.event
