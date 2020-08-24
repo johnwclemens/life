@@ -31,8 +31,8 @@ class Life(object):
         self.stats = {}
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
-        self.nCols = 175#383#79#140#11
-        self.nRows = 115#235#43 #80 #7
+        self.nCols = 191#175#383#79#140#11
+        self.nRows = 115#115#235#43 #80 #7
         self.cellW = 10
         self.cellH = 10
         self.width  = self.nCols * self.cellW + 4
@@ -65,6 +65,7 @@ class Life(object):
         (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH, p=1, q=0)
         self.parse()
         self.addShape(self.shapeKey)
+#        self.addShape2()
         self.updateStats()
         print(':END: init()\n', file=DBG_FILE)
 
@@ -116,19 +117,14 @@ class Life(object):
     def addShape2(self, c=None, r=None):
         if c is None: c = int(self.nCols/2)
         if r is None: r = int(self.nRows/2)
-        print('\n:BGN: addShape2() c={} r={}'.format(c, r))
-        self.data[r+1][c+0] = 1
-        self.data[r+0][c-1] = 1
-        self.data[r+0][c+0] = 1
-        self.data[r+0][c+1] = 1
-        self.data[r-1][c+1] = 1
-        self.cells[r+1][c+0].color = self.ALIVE
-        self.cells[r+0][c-1].color = self.ALIVE
-        self.cells[r+0][c+0].color = self.ALIVE
-        self.cells[r+0][c+1].color = self.ALIVE
-        self.cells[r-1][c+1].color = self.ALIVE
+        print('\n:BGN: addShape2() c={} r={}'.format(c, r), file=DBG_FILE)
+        self.addCell(c, r+1)
+        self.addCell(c-1, r)
+        self.addCell(c, r)
+        self.addCell(c+1, r)
+        self.addCell(c+1, r-1)
         self.printData('addShape2() c={} r={}'.format(c, r))
-        print(':END: addShape2() c={} r={}\n'.format(c, r))
+        print(':END: addShape2() c={} r={}\n'.format(c, r), file=DBG_FILE)
 
     def addCell(self, c, r):
         print('\n:BGN: addCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
@@ -143,24 +139,6 @@ class Life(object):
         self.updateStats()
         if dbg: self.printData('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
 
-    def updateDataCells_OLD(self, dbg=1):
-        data = []
-        for r in range(self.nRows):
-            tmp = []
-            for c in range(self.nCols):
-                n = self.getNeighborCount(c, r)
-                if dbg:
-                    if n == 0: print(' ', file=DBG_FILE, end='')
-                    else: print('{}'.format(n), file=DBG_FILE, end='')
-                if self.data[r][c] == 1: #                if self.isAlive(r, c) == 1:
-                    if n == 2 or n == 3: tmp.append(1); self.cells[r][c].color = self.ALIVE
-                    else:                tmp.append(0); self.cells[r][c].color = self.DEAD
-                elif n == 3:             tmp.append(1); self.cells[r][c].color = self.ALIVE
-                else:                    tmp.append(0); self.cells[r][c].color = self.DEAD
-            if dbg: print(file=DBG_FILE)
-            data.append(tmp)
-        self.data = data
-
     def updateDataCells(self, dbg=1):
         data = copy.deepcopy(self.data)
         for r in range(self.nRows-1, -1, -1):
@@ -170,6 +148,17 @@ class Life(object):
         self.data = data
 
     def updateDataCell(self, c, r, data, dbg=1):
+        n = self.getNeighborCount(c, r)
+        if dbg:
+            if n == 0: print(' ', file=DBG_FILE, end='')
+            else: print('{}'.format(n), file=DBG_FILE, end='')
+        if self.data[r][c] == 1:
+            if n == 2 or n == 3: data[r][c] = 1; self.cells[r][c].color = self.ALIVE
+            else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD;  self.pop -= 1
+        elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE; self.pop += 1
+        else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD
+
+    def updateDataCell_GOOD(self, c, r, data, dbg=1):
         n = self.getNeighborCount(c, r)
         if dbg:
             if n == 0: print(' ', file=DBG_FILE, end='')
