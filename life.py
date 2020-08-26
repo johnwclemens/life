@@ -19,11 +19,13 @@ window = pyglet.window.Window(resizable=True, screen=screen)
 class Life(object):
     def __init__(self, window):
         print('\n:BGN: init()', file=DBG_FILE)
-        self.ALIVE = (100, 192, 100)
-        self.DEAD = (90, 16, 26)
+        self.ALIVE = (96, 192, 96)
+        self.DEAD = (0, 0, 0)
         self.DATA_SET = set('.*')
         self.XLATE = str.maketrans('.*', '01')
         print('DATA_SET={} XLATE={}'.format(self.DATA_SET, self.XLATE), file=DBG_FILE)
+        self.savedData = []
+        self.savedDone = []
         self.pop = 0
         self.done = []
         self.undone = []
@@ -31,14 +33,14 @@ class Life(object):
         self.stats = {}
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
-        self.nCols = 191#175#383#79#140#11
-        self.nRows = 115#115#235#43 #80 #7
+        self.nCols = 191#21#273#191#175#383#79#140#11
+        self.nRows = 117# 7#167#115#115#235#43 #80 #7
         self.cellW = 10
         self.cellH = 10
         self.width  = self.nCols * self.cellW + 4
         self.height = self.nRows * self.cellH + 4
         self.fullScreen = False
-        self.shapeKey = 'TestMe'
+        self.shapeKey = '2-glider mess'#'TestMe'
         self.inName = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c']) > 0:
@@ -64,10 +66,24 @@ class Life(object):
         self.batch = pyglet.graphics.Batch()
         (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH, p=1, q=0)
         self.parse()
-        self.addShape(self.shapeKey)
-#        self.addShape2()
+        self.addShape()#self.shapeKey)
+        self.printData(self.data, 'addShape()')#shapeKey)')
         self.updateStats()
+#        self.addShape2()
+#        self.printData('{}'.format(txt))
         print(':END: init()\n', file=DBG_FILE)
+
+    def clear(self):
+        print('clear()', file=DBG_FILE)
+        self.pop = 0
+        self.done = []
+        self.undone = []
+        self.stats = {}
+        for r in range(self.nRows):
+            for c in range(self.nCols):
+                self.data[r][c] = 0
+                self.cells[r][c].color = self.DEAD
+        self.updateStats()
 
     def grid(self, c=100, r=70, w=10, h=10, p=0, q=0): #c=nCols r=nRows w=cellW h=cellH p=xOff q yOff
         data, cells, lines = [], [], []
@@ -79,22 +95,27 @@ class Life(object):
             data.append(tmp1)
             cells.append(tmp2)
         for i in range(c+1):
-            if i%10 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(255, 255, 255), batch=self.batch))
-            else:         lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(255, 30, 30), batch=self.batch))
+            if   i%50 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(255,   0,   0), batch=self.batch))
+            elif i%10 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(191,   0,   0), batch=self.batch))
+            else:           lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(127,   0,   0), batch=self.batch))
         for j in range(r+1):
-            if j%10 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(255, 255, 255), batch=self.batch))
-            else:         lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(255, 30, 30), batch=self.batch))
+            if   j%50 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(255,   0,   0), batch=self.batch))
+            elif j%10 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(191,   0,   0), batch=self.batch))
+            else:           lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(127,   0,   0), batch=self.batch))
         return (data, cells, lines)
 
-    def addShape(self, key):
-        p, q = 0, -20
-        c = int(self.nCols/2 - 1 - p)
-        r = int(self.nRows/2 - 1 + q)
+    def addShape(self, key='TestMe'):
+        self.done.append(self.data)
         v = self.shapes[key]
         data = v[0]
+        c1 = int((self.nCols - 1)/2 + 1)
+        r1 = int((self.nRows - 1)/2 + 1)
+        p, q = int((len(data[0]) - 1)/2 + 1), int((len(data) - 1)/2 + 1)
+        c = int((self.nCols - 1)/2 - (len(data[0]) - 1)/2)
+        r = int((self.nRows - 1)/2 + (len(data) - 1)/2)
         w, h = len(data[0]), len(data)
         a = w * h
-        txt = 'addShape() c={} r={} key={} [{}x{}={}]'.format(c, r, key, w, h, a)
+        txt = 'addShape() nc={} nr={} c1={} r1={} p={} q={} key={} c={} r={} [{}x{}={}]'.format(self.nCols, self.nRows, c1, r1, p, q, key, c, r, w, h, a)
         print('\n:BGN: {}'.format(txt), file=DBG_FILE)
         print('info1={}'.format(v[1]), file=DBG_FILE)
         if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
@@ -104,14 +125,12 @@ class Life(object):
             print('    ', file=DBG_FILE, end='')
             for i in range(w):
                 print('{}'.format(data[j][i]), file=DBG_FILE, end='')
-                if data[j][i] == 0: self.cells[r-j][c+i].color = self.DEAD
-                else:
-                    self.pop += 1
-                    self.cells[r-j][c+i].color = self.ALIVE
-                self.data[r-j][c+i] = int(data[j][i])
+                if data[j][i] == 0:
+                    self.cells[r-j][c+i].color = self.DEAD
+                    self.data[r-j][c+i] = 0
+                else: self.addCell(c+i, r-j, dbg=0)
             print(file=DBG_FILE)
-        self.done.append(self.data)
-        self.printData('{}'.format(txt))
+        txt += ' done[{}] undone[{}]'.format(len(self.done), len(self.undone))
         print(  ':END: {}\n'.format(txt), file=DBG_FILE)
 
     def addShape2(self, c=None, r=None):
@@ -123,38 +142,74 @@ class Life(object):
         self.addCell(c,   r)
         self.addCell(c+1, r)
         self.addCell(c+1, r-1)
-        self.printData('addShape2() c={} r={}'.format(c, r))
+        self.done.append(self.data)
         print(':END: addShape2() c={} r={}\n'.format(c, r), file=DBG_FILE)
 
-    def addCell(self, c, r):
-        print('\n:BGN: addCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
+    def addCell(self, c, r, dbg=0):
+        if dbg: print('\n:BGN: addCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
         if self.data[r][c] == 0: self.pop += 1
         self.data[r][c] = 1
         self.cells[r][c].color = self.ALIVE
-        print(':END: addCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
+        if dbg: print(':END: addCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
 
-    def removeCell(self, c, r):
-        print('\n:BGN: removeCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
+    def removeCell(self, c, r, dbg=0):
+        if dbg: print('\n:BGN: removeCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
         if self.data[r][c] == 1: self.pop -= 1
         self.data[r][c] = 0
         self.cells[r][c].color = self.DEAD
-        print(':END: removeCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
+        if dbg: print(':END: removeCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
+
+    def saveShape(self):
+        print('\n:BGN: saveShape()', file=DBG_FILE)
+        self.savedData = copy.deepcopy(self.data)
+        self.savedDone = copy.deepcopy(self.done)
+        print(':END: saveShape()\n', file=DBG_FILE)
+
+    def recallShape(self):
+        print('\n:BGN: recallShape() current pop={}'.format(self.pop), file=DBG_FILE)
+        self.calcPop()
+        self.done = copy.deepcopy(self.savedDone)
+        for r in range(len(self.savedData)):
+            for c in range(len(self.savedData[0])):
+                if self.savedData[r][c] == 1: self.addCell(c, r)
+                else:                         self.removeCell(c, r)
+        self.printData(self.data, 'recallShape()')
+        self.updateStats()
+        print(':END: recallShape() recalled pop={}\n'.format(self.pop), file=DBG_FILE)
+
+    def calcPop(self):
+        self.pop = 0
+        for r in range(self.nRows):
+            for c in range(self.nCols):
+                if self.data[r][c] == 1: self.pop += 1
+
+    def undo(self, pc=1): #pc=?
+        print('\n:BGN: undo() done[{}] undone[{}]\n'.format(len(self.done), len(self.undone)), file=DBG_FILE)
+        if len(self.done) > 0:
+            self.data = self.done.pop(-1)
+            self.undone.append(self.data)
+            for r in range(self.nRows):
+                for c in range(self.nCols):
+                    if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD
+                    else:                    self.cells[r][c].color = self.ALIVE
+        self.updateStats()
+        self.printData(self.data, 'undo()')
+        print(':END: undo() done[{}] undone[{}]\n'.format(len(self.done), len(self.undone)), file=DBG_FILE)
 
     def update(self, dbg=1):
-        self.updateDataCells()
         self.done.append(self.data)
+        self.updateDataCells()
         self.updateStats()
-        if dbg: self.printData('update() done[{}] undone[{}]'.format(len(self.done), len(self.undone)))
+        self.printData(self.data, 'update()')
 
     def updateDataCells(self, dbg=1):
         data = copy.deepcopy(self.data)
         for r in range(self.nRows-1, -1, -1):
             for c in range(self.nCols):
                 self.updateDataCell(c, r, data)
-            if dbg: print(file=DBG_FILE)
         self.data = data
 
-    def updateDataCell(self, c, r, data, dbg=1):
+    def updateDataCell(self, c, r, data, dbg=0):
         n = self.getNeighborCount(c, r)
         if dbg:
             if n == 0: print(' ', file=DBG_FILE, end='')
@@ -177,28 +232,12 @@ class Life(object):
 #        if dbg: print('({},{})[{}]'.format(r, c, n), file=DBG_FILE, end=' ')
         return n
 
-    def isAlive(self, r, c, dbg=0):
-        if self.data[r][c] == 0: return 0
-        return 1
-
-    def printData(self, reason=''):
-#        print('printData({}) data[{}x{}={}]'.format(reason, len(self.data), len(self.data[0]), len(self.data)*len(self.data[0])), file=DBG_FILE)
-        print('\n:BGN: printData({}) data[{}x{}={:,}]'.format(reason, self.nRows, self.nCols, self.nRows*self.nCols), file=DBG_FILE)
-        for r in range(self.nRows-1, -1, -1):
-            for c in range(self.nCols):
-                if self.data[r][c] == 0:
-                    print(' ', file=DBG_FILE, end='')
-                else:
-                    print('X', file=DBG_FILE, end='')
-            print(file=DBG_FILE)
-        print(':END: printData({}) data[{}x{}={:,}]\n'.format(reason, self.nRows, self.nCols, self.nRows*self.nCols), file=DBG_FILE)
-
     def updateStats(self):
         assert self.pop >= 0
         assert self.nRows == len(self.cells)
         assert self.nCols == len(self.cells[0])
         self.stats['S_POP'] = self.pop
-        self.stats['S_GEN'] = len(self.done) - 1
+        self.stats['S_GEN'] = len(self.done)# - 1
         self.stats['S_AREA'] = self.nRows * self.nCols
         self.stats['S_DENS'] = 100 * self.stats['S_POP'] / self.stats['S_AREA']
         if self.pop > 0: self.stats['S_IDENS'] = int(self.stats['S_AREA'] / self.stats['S_POP'])
@@ -206,7 +245,8 @@ class Life(object):
         self.displayStats()
 
     def displayStats(self, dbg=1):
-        txt = 'Gen={} Pop={} Area={:,} Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.stats['S_DENS'], self.stats['S_IDENS'])
+#        txt = 'Gen={} Pop={} Area={:,} [{}x{}] Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.nCols, self.nRows, self.stats['S_DENS'], self.stats['S_IDENS'])
+        txt = 'Gen={} Pop={} Area={:,} done={} undone={} Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], len(self.done), len(self.undone), self.stats['S_DENS'], self.stats['S_IDENS'])
         self.window.set_caption(txt)
         if dbg: print('{}'.format(txt), file=DBG_FILE)
 
@@ -294,23 +334,20 @@ class Life(object):
 #        if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
 #        else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
         if   symbol == key.Q and modifiers == key.MOD_CTRL: exit()
+        elif symbol == key.E and modifiers == key.MOD_CTRL: self.clear()
+        elif symbol == key.F and modifiers == key.MOD_CTRL: self.toggleFullScreen()
+        elif symbol == key.R and modifiers == key.MOD_CTRL: self.recallShape()
+        elif symbol == key.S and modifiers == key.MOD_CTRL: self.saveShape()
+        elif symbol == key.A and modifiers == key.MOD_CTRL: self.addShape(self.shapeKey)
         elif symbol == key.SPACE:                           self.stop()
         elif symbol == key.ENTER:                           self.run()
         elif symbol == key.RIGHT:                           self.update()
-        elif symbol == key.F and modifiers == key.MOD_CTRL: self.toggleFullScreen()
+        elif symbol == key.LEFT:                            self.undo()
 
-#pyglet.window.mouse.LEFT
-#pyglet.window.mouse.MIDDLE
-#pyglet.window.mouse.RIGHT
-    def on_mouse_release(self, x, y, button, modifiers):
-#        print('on_mouse_release() x={} y={} b={} m={}'.format(x, y, button, modifiers), flush=True)#, file=DBG_FILE)
+    def on_mouse_release(self, x, y, button, modifiers): #pyglet.window.mouse.MIDDLE #pyglet.window.mouse.LEFT #pyglet.window.mouse.RIGHT
         r, c = int(y/self.cellH), int(x/self.cellW)
         print('on_mouse_release() x={} y={} b={} m={} d[{}][{}]={}'.format(x, y, button, modifiers, r, c, self.data[r][c]), file=DBG_FILE)
         self.toggleCell(c, r)
-#        if  self.data[r][c] == 0: self.addCell(c, r)
-#        else:
-#            self.data[r][c] = 0
-#            self.cells[r][c].color = self.DEAD
 
     def on_draw(self):
         self.window.clear()
@@ -318,6 +355,19 @@ class Life(object):
 
     def on_resize(self, width, height):
         print('on_resize() width={} height={}'.format(width, height), file=DBG_FILE)
+
+    @staticmethod
+    def printData(data, reason=''):
+        nRows, nCols = len(data), len(data[0]); area = nRows * nCols
+        print('\n:BGN: printData({}) data[{}x{}={:,}]'.format(reason, nRows, nCols, area), file=DBG_FILE)
+        for r in range(nRows-1, -1, -1):
+            for c in range(nCols):
+                if data[r][c] == 0:
+                    print(' ', file=DBG_FILE, end='')
+                else:
+                    print('X', file=DBG_FILE, end='')
+            print(file=DBG_FILE)
+        print(':END: printData({}) data[{}x{}={:,}]\n'.format(reason, nRows, nCols, area), file=DBG_FILE)
 
 ####################################################################################################
 @window.event
