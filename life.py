@@ -48,17 +48,13 @@ class Life(object):
         self.fullScreen = False
         self.shapeKey = 'Gosper glider gun'#'TestMe'
         self.inName = 'lexicon-no-wrap.txt'
-        self.wrapEdges = 0
-        self.getNNCount = self.getNNCountWrap
+        self.getNNCount = self.getNNCountHard
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
-        if 'c' in self.argMap and len(self.argMap['c']) > 0:
-            self.nCols = int(self.argMap['c'][0])
-        if 'r' in self.argMap and len(self.argMap['r']) > 0:
-            self.nRows = int(self.argMap['r'][0])
-        if 's' in self.argMap and len(self.argMap['s']) > 0:
-            self.shapeKey = self.argMap['s'][0]
-        if 'f' in self.argMap and len(self.argMap['f']) > 0:
-            self.inName = self.argMap['f'][0]
+        if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.nCols      = int(self.argMap['c'][0])
+        if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.nRows      = int(self.argMap['r'][0])
+        if 's' in self.argMap and len(self.argMap['s'])  > 0: self.shapeKey   = self.argMap['s'][0]
+        if 'f' in self.argMap and len(self.argMap['f'])  > 0: self.inName     = self.argMap['f'][0]
+        if 'w' in self.argMap and len(self.argMap['w']) == 0: self.getNNCount = self.getNNCountWrap
         print('shapeKey={}'.format(self.shapeKey), file=DBG_FILE)
         print('inName={}'.format(self.inName), file=DBG_FILE)
         print('nCols={}'.format(self.nCols), file=DBG_FILE)
@@ -67,6 +63,7 @@ class Life(object):
         print('cellH={}'.format(self.cellH), file=DBG_FILE)
         print('width={}'.format(self.width), file=DBG_FILE)
         print('height={}'.format(self.height), file=DBG_FILE)
+        print('getNNCount={}'.format(self.getNNCount), file=DBG_FILE)
         self.window = window
         if self.fullScreen == False: self.window.set_size(self.width, self.height)
         else: window.set_fullscreen()
