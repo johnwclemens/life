@@ -33,14 +33,20 @@ class Life(object):
         self.stats = {}
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
-        self.nCols = 191#21#273#191#175#383#79#140#11
-        self.nRows = 117# 7#167#115#115#235#43 #80 #7
+#        self.nCols = 191#21#273#191#175#383#79#140#11
+#        self.nRows = 117# 7#167#115#115#235#43 #80 #7
+        self.nCols = 191#10
+        self.nRows = 117#10
         self.cellW = 10
         self.cellH = 10
+#        self.nCols = 383#5
+#        self.nRows = 235#5
+#        self.cellW = 5
+#        self.cellH = 5
         self.width  = self.nCols * self.cellW + 4
         self.height = self.nRows * self.cellH + 4
         self.fullScreen = False
-        self.shapeKey = '2-glider mess'#'TestMe'
+        self.shapeKey = 'Gosper glider gun'#'TestMe'
         self.inName = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c']) > 0:
@@ -66,7 +72,7 @@ class Life(object):
         self.batch = pyglet.graphics.Batch()
         (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH, p=1, q=0)
         self.parse()
-        self.addShape()#self.shapeKey)
+        self.addShape(self.shapeKey)
         self.printData(self.data, 'addShape()')#shapeKey)')
         self.updateStats()
 #        self.addShape2()
@@ -224,12 +230,18 @@ class Life(object):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
-                if i != 0 or j != 0:
-                    if r+j >= 0 and c+i >= 0 and r+j < self.nRows and c+i < self.nCols:
-                        if self.data[r+j][c+i] != 0: n += 1
-#                        if dbg: print('({},{},{})'.format(r+j, c+i, n), file=DBG_FILE, end=' ')
-#            if dbg: print(file=DBG_FILE)
-#        if dbg: print('({},{})[{}]'.format(r, c, n), file=DBG_FILE, end=' ')
+                n += self.data[(r+j+self.nRows)%self.nRows][(c+i+self.nCols)%self.nCols]
+        n -= self.data[r][c]
+        return n
+
+    def getNeighborCount_(self, c, r, dbg=0):
+        n = 0
+        for j in range(-1, 2):
+            for i in range(-1, 2):
+                if r+j >= 0 and c+i >= 0 and r+j < self.nRows and c+i < self.nCols:
+                    n += self.data[r+j][c+i]
+#                    if self.data[r+j][c+i] != 0: n += 1
+        n -= self.data[r][c]
         return n
 
     def updateStats(self):
