@@ -48,6 +48,8 @@ class Life(object):
         self.fullScreen = False
         self.shapeKey = 'Gosper glider gun'#'TestMe'
         self.inName = 'lexicon-no-wrap.txt'
+        self.wrapEdges = 0
+        self.getNNCount = self.getNNCountWrap
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c']) > 0:
             self.nCols = int(self.argMap['c'][0])
@@ -216,7 +218,7 @@ class Life(object):
         self.data = data
 
     def updateDataCell(self, c, r, data, dbg=0):
-        n = self.getNeighborCount(c, r)
+        n = self.getNNCount(c, r)
         if dbg:
             if n == 0: print(' ', file=DBG_FILE, end='')
             else: print('{}'.format(n), file=DBG_FILE, end='')
@@ -226,7 +228,7 @@ class Life(object):
         elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE; self.pop += 1
         else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD
 
-    def getNeighborCount(self, c, r, dbg=0):
+    def getNNCountHard(self, c, r):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
@@ -234,13 +236,12 @@ class Life(object):
         n -= self.data[r][c]
         return n
 
-    def getNeighborCount_(self, c, r, dbg=0):
+    def getNNCountWrap(self, c, r, dbg=0):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
                 if r+j >= 0 and c+i >= 0 and r+j < self.nRows and c+i < self.nCols:
                     n += self.data[r+j][c+i]
-#                    if self.data[r+j][c+i] != 0: n += 1
         n -= self.data[r][c]
         return n
 
@@ -324,6 +325,12 @@ class Life(object):
         for k in dataKeys: print('dataKeys=[{}] size=[{} x {}={}]'.format(k, len(self.shapes[k][0]), len(self.shapes[k][0][0]), len(self.shapes[k][0])*len(self.shapes[k][0][0])), file=DBG_FILE)
         print(':END: printShapes() len(shapes)={} len(noneKeys)={} len(valKeys)={}\n'.format(len(self.shapes), len(noneKeys), len(dataKeys)), file=DBG_FILE)
 
+    def toggleWrapEdges(self):
+        print('\n:BGN toggleWrapEdges() {}'.format(self.getNNCount), file=DBG_FILE)
+        if self.getNNCount == self.getNNCountHard: self.getNNCount = self.getNNCountWrap
+        else:                                      self.getNNCount = self.getNNCountHard
+        print(':END toggleWrapEdges() {}\n'.format(self.getNNCount), file=DBG_FILE)
+
     def toggleFullScreen(self):
         if   self.fullScreen == True: self.fullScreen = False
         else:                         self.fullScreen = True
@@ -346,11 +353,12 @@ class Life(object):
 #        if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
 #        else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
         if   symbol == key.Q and modifiers == key.MOD_CTRL: exit()
+        elif symbol == key.A and modifiers == key.MOD_CTRL: self.addShape(self.shapeKey)
         elif symbol == key.E and modifiers == key.MOD_CTRL: self.clear()
         elif symbol == key.F and modifiers == key.MOD_CTRL: self.toggleFullScreen()
         elif symbol == key.R and modifiers == key.MOD_CTRL: self.recallShape()
         elif symbol == key.S and modifiers == key.MOD_CTRL: self.saveShape()
-        elif symbol == key.A and modifiers == key.MOD_CTRL: self.addShape(self.shapeKey)
+        elif symbol == key.W and modifiers == key.MOD_CTRL: self.toggleWrapEdges()
         elif symbol == key.SPACE:                           self.stop()
         elif symbol == key.ENTER:                           self.run()
         elif symbol == key.RIGHT:                           self.update()
