@@ -143,13 +143,13 @@ class TestGuiB(object):
         if dbg: self.printData(self.data, 'addShape1() c={} r={}'.format(c, r))
 
     def addShape2(self, c, r, dbg=1):
-        self.addCell(c-2, r+2)
         self.addCell(c-2, r+1)
         self.addCell(c-2, r)
-        self.addCell(c-1, r)
-        self.addCell(c,   r)
-        self.addCell(c+1, r)
+        self.addCell(c-2, r-1)
+        self.addCell(c-1, r-1)
+        self.addCell(c,   r-1)
         self.addCell(c+1, r-1)
+        self.addCell(c+1, r-2)
         if dbg: self.printData(self.data, 'addShape2() c={} r={}'.format(c, r))
 
     def addShape3(self, c, r, dbg=1):
