@@ -14,13 +14,16 @@ import cmdArgs
 screen_number = 0
 display = pyglet.canvas.get_display()
 screen = display.get_screens()[screen_number]
-window = pyglet.window.Window(resizable=True, screen=screen)
+window = pyglet.window.Window(visible=False, resizable=True, screen=screen)
 
 class Life(object):
     def __init__(self, window):
         print('\n:BGN: init()', file=DBG_FILE)
         self.ALIVE = (96, 192, 96)
         self.DEAD = (0, 0, 0)
+        self.MAJ_GRID_LINE = (255, 0, 0)
+        self.NOM_GRID_LINE = (127, 31, 31)
+        self.MIN_GRID_LINE = (63, 15, 15)
         self.DATA_SET = set('.*')
         self.XLATE = str.maketrans('.*', '01')
         print('DATA_SET={} XLATE={}'.format(self.DATA_SET, self.XLATE), file=DBG_FILE)
@@ -35,10 +38,14 @@ class Life(object):
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
 #        self.nCols = 191#21#273#191#175#383#79#140#11
 #        self.nRows = 117# 7#167#115#115#235#43 #80 #7
-        self.nCols = 191#10
-        self.nRows = 117#10
-        self.cellW = 10
-        self.cellH = 10
+        self.nCols =  93#20
+        self.nRows =  55#20
+        self.cellW = 20
+        self.cellH = 20
+#        self.nCols = 191#10
+#        self.nRows = 117#10
+#        self.cellW = 10
+#        self.cellH = 10
 #        self.nCols = 383#5
 #        self.nRows = 235#5
 #        self.cellW = 5
@@ -46,30 +53,34 @@ class Life(object):
         self.width  = self.nCols * self.cellW + 4
         self.height = self.nRows * self.cellH + 4
         self.fullScreen = False
-        self.shapeKey = 'Gosper glider gun'#'TestMe'
+        self.shapeKey = 'TestMe' #'Gosper glider gun'#
         self.inName = 'lexicon-no-wrap.txt'
         self.getNNCount = self.getNNCountHard
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.nCols      = int(self.argMap['c'][0])
         if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.nRows      = int(self.argMap['r'][0])
+        if 'w' in self.argMap and len(self.argMap['w'])  > 0: self.cellW      = int(self.argMap['w'][0])
+        if 'h' in self.argMap and len(self.argMap['h'])  > 0: self.cellH      = int(self.argMap['h'][0])
+        if 'W' in self.argMap and len(self.argMap['W'])  > 0: self.width      = int(self.argMap['W'][0])
+        if 'H' in self.argMap and len(self.argMap['H'])  > 0: self.height     = int(self.argMap['H'][0])
         if 's' in self.argMap and len(self.argMap['s'])  > 0: self.shapeKey   = self.argMap['s'][0]
         if 'f' in self.argMap and len(self.argMap['f'])  > 0: self.inName     = self.argMap['f'][0]
-        if 'w' in self.argMap and len(self.argMap['w']) == 0: self.getNNCount = self.getNNCountWrap
-        print('shapeKey={}'.format(self.shapeKey), file=DBG_FILE)
-        print('inName={}'.format(self.inName), file=DBG_FILE)
+        if 'n' in self.argMap and len(self.argMap['n']) == 0: self.getNNCount = self.getNNCountWrap
         print('nCols={}'.format(self.nCols), file=DBG_FILE)
         print('nRows={}'.format(self.nRows), file=DBG_FILE)
         print('cellW={}'.format(self.cellW), file=DBG_FILE)
         print('cellH={}'.format(self.cellH), file=DBG_FILE)
         print('width={}'.format(self.width), file=DBG_FILE)
         print('height={}'.format(self.height), file=DBG_FILE)
+        print('shapeKey={}'.format(self.shapeKey), file=DBG_FILE)
+        print('inName={}'.format(self.inName), file=DBG_FILE)
         print('getNNCount={}'.format(self.getNNCount), file=DBG_FILE)
         self.window = window
         if self.fullScreen == False: self.window.set_size(self.width, self.height)
         else: window.set_fullscreen()
         self.window.set_visible()
         self.batch = pyglet.graphics.Batch()
-        (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH, p=1, q=0)
+        (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH)
         self.parse()
         self.addShape(self.shapeKey)
         self.printData(self.data, 'addShape()')#shapeKey)')
@@ -90,7 +101,7 @@ class Life(object):
                 self.cells[r][c].color = self.DEAD
         self.updateStats()
 
-    def grid(self, c=100, r=70, w=10, h=10, p=0, q=0): #c=nCols r=nRows w=cellW h=cellH p=xOff q yOff
+    def grid_OLD(self, c=100, r=70, w=10, h=10, p=0, q=0): #c=nCols r=nRows w=cellW h=cellH p=xOff q=yOff
         data, cells, lines = [], [], []
         for j in range(r):
             tmp1, tmp2 = [], []
@@ -100,13 +111,33 @@ class Life(object):
             data.append(tmp1)
             cells.append(tmp2)
         for i in range(c+1):
-            if   i%50 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(255,   0,   0), batch=self.batch))
-            elif i%10 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(191,   0,   0), batch=self.batch))
-            else:           lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=(127,   0,   0), batch=self.batch))
+            if   i%50 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
+            elif i%10 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.NOM_GRID_LINE, batch=self.batch))
+            else:           lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.MIN_GRID_LINE, batch=self.batch))
         for j in range(r+1):
-            if   j%50 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(255,   0,   0), batch=self.batch))
-            elif j%10 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(191,   0,   0), batch=self.batch))
-            else:           lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=(127,   0,   0), batch=self.batch))
+            if   j%50 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
+            elif j%10 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.NOM_GRID_LINE, batch=self.batch))
+            else:           lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.MIN_GRID_LINE, batch=self.batch))
+        return (data, cells, lines)
+
+    def grid(self, c=100, r=70, w=10, h=10): #c=nCols r=nRows w=cellW h=cellH
+        p = int(c/2-1)
+        data, cells, lines = [], [], []
+        for j in range(r):
+            tmp1, tmp2 = [], []
+            for i in range(c):
+                tmp1.append(0)
+                tmp2.append(shapes.Rectangle(i*w+p, j*h+q, w, h, color=self.DEAD, batch=self.batch))
+            data.append(tmp1)
+            cells.append(tmp2)
+        for i in range(c+1):
+            if   i%20 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
+            elif i%10 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.NOM_GRID_LINE, batch=self.batch))
+            else:           lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.MIN_GRID_LINE, batch=self.batch))
+        for j in range(r+1):
+            if   j%20 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
+            elif j%10 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.NOM_GRID_LINE, batch=self.batch))
+            else:           lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.MIN_GRID_LINE, batch=self.batch))
         return (data, cells, lines)
 
     def addShape(self, key='TestMe'):
@@ -125,7 +156,7 @@ class Life(object):
         print('info1={}'.format(v[1]), file=DBG_FILE)
         if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
         if v[3]: print('info3={}'.format(v[3]), file=DBG_FILE)
-        if data is None: return
+        if data is None: return #print something?
         for j in range(h):
             print('    ', file=DBG_FILE, end='')
             for i in range(w):
@@ -355,7 +386,7 @@ class Life(object):
         elif symbol == key.F and modifiers == key.MOD_CTRL: self.toggleFullScreen()
         elif symbol == key.R and modifiers == key.MOD_CTRL: self.recallShape()
         elif symbol == key.S and modifiers == key.MOD_CTRL: self.saveShape()
-        elif symbol == key.W and modifiers == key.MOD_CTRL: self.toggleWrapEdges()
+        elif symbol == key.N and modifiers == key.MOD_SHIFT: self.toggleWrapEdges()
         elif symbol == key.SPACE:                           self.stop()
         elif symbol == key.ENTER:                           self.run()
         elif symbol == key.RIGHT:                           self.update()
