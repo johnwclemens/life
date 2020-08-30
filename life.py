@@ -121,7 +121,7 @@ class Life(object):
         return (data, cells, lines)
 
     def grid(self, c=100, r=70, w=10, h=10): #c=nCols r=nRows w=cellW h=cellH
-        p = int(c/2-1)
+        p = q = 0 #int(c/2-1)
         data, cells, lines = [], [], []
         for j in range(r):
             tmp1, tmp2 = [], []

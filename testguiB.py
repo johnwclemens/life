@@ -6,40 +6,7 @@ import sys, os, copy
 sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
 
-#display = pyglet.canvas.get_display()
-#screens = display.get_screens()
-#windows = []
-#for screen in screens:
-#    windows.append(pyglet.window.Window(screen=screen))
-
-window = pyglet.window.Window(visible=False, resizable=True)
-#image = pyglet.image.SolidColorImagePattern((255,255,255,255)).create_image(200, 150)
-
-class TestGuiB(object):
-    def __init__(self, window):
-        self.ALIVE = (127, 255, 127)
-        self.DEAD =  (31, 0, 127)
-        self.DEAD2 = (15, 0, 63)
-        self.MIN_GRID_LINE = (255, 127, 127)
-        self.NOM_GRID_LINE = (127, 127, 255)
-        self.MAJ_GRID_LINE = (127, 255, 127)
-        self.argMap = {}
-        self.argMap = cmdArgs.parseCmdLine(dbg=1)
-        print('argMap={}'.format(self.argMap), file=DBG_FILE)
-        if 's' in self.argMap and len(self.argMap['s'])  > 0: self.shape = int(self.argMap['s'][0])
-#        self.bg = pyglet.sprite.Sprite(pyglet.image.load('bg.png'), batch=self.batch)
-        self.window = window
-        if self.shape == 1:
-            self.addGrid(c=19, r=11)
-            self.addShape1(int(self.c/2), int(self.r/2))
-        elif self.shape == 2:
-            self.addGrid2(c=20, r=12) #c=20, r=12
-            self.addShape2(int(self.c/2), int(self.r/2))
-        elif self.shape == 3:
-            self.addGrid(c=20, r=11)
-            self.addShape3(int(self.c/2), int(self.r/2))
-        self.window.set_visible()
-    '''
+'''
     def addGrid(self, c=100, r=75, ww=1900, wh=1150, dbg=1):
         self.batch = pyglet.graphics.Batch()
         self.c, self.r, p, q = c, r, 0, 0
@@ -67,71 +34,106 @@ class TestGuiB(object):
             elif int(j*h+q)% 5 == 0: self.lines.append(shapes.Line(int(p), int(j*h+q), int(c*w+p), int(j*h+q), width=1, color=self.NOM_GRID_LINE, batch=self.batch))
             else:                    self.lines.append(shapes.Line(int(p), int(j*h+q), int(c*w+p), int(j*h+q), width=1, color=self.MIN_GRID_LINE, batch=self.batch))
         if dbg: print('addGrid(END) c={} r={} ww={} wh={} w={} h={}'.format(self.c, self.r, self.ww, self.wh, self.w, self.h), file=DBG_FILE)
-    '''
-#        for i in range(-int(c/2), int(c/2+1)):
-#        for j in range(-int(r/2), int(r/2+1)):
+'''
+
+#display = pyglet.canvas.get_display()
+#screens = display.get_screens()
+#windows = []
+#for screen in screens:
+#    windows.append(pyglet.window.Window(screen=screen))
+
+window = pyglet.window.Window(visible=False, resizable=True)
+#image = pyglet.image.SolidColorImagePattern((255,255,255,255)).create_image(200, 150)
+
+class TestGuiB(object):
+    def __init__(self, window):
+        self.ALIVE  = (127, 255, 127)
+        self.ALIVE2 = (191, 255, 127)
+        self.DEAD   = ( 31,   0, 127)
+        self.DEAD2  = ( 15,  15,  63)
+        self.MIN_GRID_LINE = (  0,   0,   0)
+        self.NOM_GRID_LINE = (255,   0,   0)
+        self.MAJ_GRID_LINE = (  0,   0, 255)#(127, 255, 127)
+        self.argMap = {}
+        self.argMap = cmdArgs.parseCmdLine(dbg=1)
+        print('argMap={}'.format(self.argMap), file=DBG_FILE)
+        if 's' in self.argMap and len(self.argMap['s'])  > 0: self.shape = int(self.argMap['s'][0])
+#        self.bg = pyglet.sprite.Sprite(pyglet.image.load('bg.png'), batch=self.batch)
+        self.window = window
+        if self.shape == 1:
+            self.addGrid(c=19, r=11)
+            self.addShape1( int(round(self.c/2)), int(round(self.r/2)))
+        elif self.shape == 2:
+            self.addGrid2(c=190, r=120) #c=200, r=118 c=20, r=12
+            self.addShape2A(int(round(self.c/2)), int(round(self.r/2)))
+        elif self.shape == 3:
+            self.addGrid(c=20, r=11)
+            self.addShape3( int(round(self.c/2)), int(round(self.r/2)))
+        self.window.set_visible()
+
     def addGrid2(self, c=100, r=75, ww=1900, wh=1150, dbg=1):
+        self.c, self.r = c, r
+        self.ww, self.wh = ww, wh
         self.batch = pyglet.graphics.Batch()
-        x = 0 #ww / 2
-        y = 0 #wh / 2
-        self.c, self.r, p, q = c, r, 0, 0
-#        self.window.set_location(0, 0)
-#        self.window.set_size(ww, wh)
-#        ww -= 2; wh -= 2
-#        self.ww, self.wh = ww, wh
-        self.window.set_size(ww, wh)
-        self.ww, self.wh = self.window.get_size()
+        gmax = 25
+        p, q = int(round(c/2)) % gmax, int(round(r/2)) % gmax
+        m, n,  = 0, 0 #1, 1
+#        self.window.set_location(0, 0) #screws up screen and/or size?
+        self.window.set_size(ww+m, wh+n)
+#        self.ww, self.wh = self.window.get_size()
         w = self.w = self.ww / self.c
         h = self.h = self.wh / self.r
-#        if c % 2 == 1: p = -w / 2
-#        if r % 2 == 1: q =  h / 2
+        x = self.x = 0
+        y = self.y = 0
         self.data, self.cells, self.clines, self.rlines = [], [], [], []
-        if dbg: print('addGrid(BGN) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f}'.format(w, h, c, r, ww, wh, x, y), file=DBG_FILE)
+        if dbg: print('addGrid(BGN) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f} p={} q={} m={} n={}'.format(w, h, c, r, ww, wh, x, y, p, q, m, n), file=DBG_FILE)
         for j in range(r):
             tmp1, tmp2 = [], []
             for i in range(c):
                 tmp1.append(0)
                 if (i+j) % 2: color = self.DEAD
                 else:         color = self.DEAD2
-                tmp2.append(shapes.Rectangle(int(i*w+x), int(j*h+y), int(w), int(h), color=color, batch=self.batch))
+                tmp2.append(shapes.Rectangle(int(round(i*w+x)), int(round(j*h+y)), int(round(w)), int(round(h)), color=color, batch=self.batch))
             self.data.append(tmp1)
             self.cells.append(tmp2)
-        for i in range(c+1):
-            print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, int(i*w), i*w+x, int(i*w+x)), file=DBG_FILE)
-            if   (10+i) % 4 == 0: self.clines.append(shapes.Line(int(i*w+x), int(y), int(i*w+x), int(r*h+y), width=3, color=self.MAJ_GRID_LINE, batch=self.batch))
-            elif (10+i) % 2 == 0: self.clines.append(shapes.Line(int(i*w+x), int(y), int(i*w+x), int(r*h+y), width=3, color=self.NOM_GRID_LINE, batch=self.batch))
-            else:            self.clines.append(shapes.Line(int(i*w+x), int(y), int(i*w+x), int(r*h+y), width=3, color=self.MIN_GRID_LINE, batch=self.batch))
-        print(file=DBG_FILE)
+        for i in range(c+1): #            self.clines.append(shapes.Line(int(i*w+x), int(y), int(i*w+x), int(r*h+y), width=1, color=self.MIN_GRID_LINE, batch=self.batch))
+            print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, int(round(i*w)), i*w+x, int(round(i*w+x))), file=DBG_FILE, end=' ')
+            if   (i-p) % gmax == 0: self.clines.append(shapes.Line(int(round(i*w+x)), int(round(y)), int(round(i*w+x)), int(round(r*h+y)), width=1, color=self.MAJ_GRID_LINE, batch=self.batch)); print('(i-p)%25={}'.format((i-p)%25), file=DBG_FILE)
+            elif (i-p) %    5 == 0: self.clines.append(shapes.Line(int(round(i*w+x)), int(round(y)), int(round(i*w+x)), int(round(r*h+y)), width=1, color=self.NOM_GRID_LINE, batch=self.batch)); print('(i-p)% 5={}'.format((i-p)% 5), file=DBG_FILE)
+            else:                   self.clines.append(shapes.Line(int(round(i*w+x)), int(round(y)), int(round(i*w+x)), int(round(r*h+y)), width=1, color=self.MIN_GRID_LINE, batch=self.batch)); print('(i-p)% 1={}'.format((i-p)% 1), file=DBG_FILE)
+        print(file=DBG_FILE) #            self.rlines.append(shapes.Line(int(x), int(j*h+y), int(c*w+x), int(j*h+y), width=1, color=self.MIN_GRID_LINE, batch=self.batch))
         for j in range(r+1):
-            print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, int(j*h), j*h+y, int(j*h+y)), file=DBG_FILE)
-            if   (10+j) % 4 == 0: self.rlines.append(shapes.Line(int(x), int(j*h+y), int(c*w+x), int(j*h+y), width=3, color=self.MAJ_GRID_LINE, batch=self.batch))
-            elif (10+j) % 2 == 0: self.rlines.append(shapes.Line(int(x), int(j*h+y), int(c*w+x), int(j*h+y), width=3, color=self.NOM_GRID_LINE, batch=self.batch))
-            else:            self.rlines.append(shapes.Line(int(x), int(j*h+y), int(c*w+x), int(j*h+y), width=3, color=self.MIN_GRID_LINE, batch=self.batch))
+            print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, int(round(j*h)), j*h+y, int(round(j*h+y))), file=DBG_FILE, end=' ')
+            if   (j-q) % gmax == 0: self.rlines.append(shapes.Line(int(round(x)), int(round(j*h+y)), int(round(c*w+x)), int(round(j*h+y)), width=1, color=self.MAJ_GRID_LINE, batch=self.batch)); print('(j-q)%25={}'.format((j-q)%25), file=DBG_FILE)
+            elif (j-q) %    5 == 0: self.rlines.append(shapes.Line(int(round(x)), int(round(j*h+y)), int(round(c*w+x)), int(round(j*h+y)), width=1, color=self.NOM_GRID_LINE, batch=self.batch)); print('(j-q)% 5={}'.format((j-q)% 5), file=DBG_FILE)
+            else:                   self.rlines.append(shapes.Line(int(round(x)), int(round(j*h+y)), int(round(c*w+x)), int(round(j*h+y)), width=1, color=self.MIN_GRID_LINE, batch=self.batch)); print('(j-q)% 1={}'.format((j-q)% 1), file=DBG_FILE)
         if dbg: print('addGrid(END) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f}'.format(self.w, self.h, self.c, self.r, self.ww, self.wh, x, y), file=DBG_FILE)
 
-#        for i in range(int(len(self.clines)/2-1)):
-#        for j in range(int(len(self.rlines)/2-1), len(self.rlines)-1):
     def on_resize(self, width, height, dbg=1):
-        return
-        if dbg: print('on_resize(BGN) width={} height={} ww={} wh={} w={} h={}'.format(width, height, self.ww, self.wh, self.w, self.h), file=DBG_FILE)
-        c, r = self.c, self.r
+#        return
         ww = self.ww = width
         wh = self.wh = height
+        m, n = 0, 0 #1, 1
+        x, y = self.x, self.y
+        if dbg: print('on_resize(BGN) width={} height={} ww={} wh={} w={:6.2f} h={:6.2f}'.format(width, height, self.ww, self.wh, self.w, self.h), file=DBG_FILE)
+        c, r = self.c, self.r
         w = self.w = self.ww / self.c
         h = self.h = self.wh / self.r
-        if dbg: print('on_resize() w={:6.2f} h={:6.2f} ww={} wh={} x={:6.2f} y={:6.2f}'.format(w, h, ww, wh, x, y), file=DBG_FILE)
+        if dbg: print('on_resize() w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f} m={} n={}'.format(w, h, c, r, ww, wh, x, y, m, n), file=DBG_FILE)
         for j in range(len(self.cells)):
             for i in range(len(self.cells[j])):
-                self.cells[j][i].position = (int(i*w+x), int(j*h+y))
-                self.cells[j][i].width = int(w)
-                self.cells[j][i].height = int(h)
+                self.cells[j][i].position = (int(round(i*w+x)), int(round(j*h+y)))
+                self.cells[j][i].width = int(round(w))
+                self.cells[j][i].height = int(round(h))
         for i in range(len(self.clines)):
-            self.clines[i].position = (int(i*w+x), int(y), int(i*w+x), int(r*h+y))
-            if dbg: print('i={:4} i*w+x={:6.2f} y={} r*h+y={:7.2f}'.format(i, i*w+x, y, r*h+y), file=DBG_FILE)
+            self.clines[i].position = (int(round(i*w+x)), int(round(y)), int(round(i*w+x)), int(round(r*h+y)))
+#            if dbg: print('i={:4} i*w+x={:6.2f} y={} r*h+y={:7.2f}'.format(i, i*w+x, y, r*h+y), file=DBG_FILE)
+            if dbg: print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, int(round(i*w)), i*w+x, int(round(i*w+x))), file=DBG_FILE)
         print(file=DBG_FILE)
         for j in range(len(self.rlines)):
-            self.rlines[j].position = (int(x), int(j*h+y), int(c*w+x), int(j*h+y))
-            if dbg: print('j={:4} j*h+y={:6.2f} x={} c*w+x={:7.2f}'.format(j, j*h+y, x, c*w+x), file=DBG_FILE)
+            self.rlines[j].position = (int(round(x)), int(round(j*h+y)), int(round(c*w+x)), int(round(j*h+y)))
+#            if dbg: print('j={:4} j*h+y={:6.2f} x={} c*w+x={:7.2f}'.format(j, j*h+y, x, c*w+x), file=DBG_FILE)
+            if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, int(round(j*h)), j*h+y, int(round(j*h+y))), file=DBG_FILE)
         if dbg: print('on_resize(END) ww={} wh={} w={:6.2f} h={:6.2f}'.format(self.ww, self.wh, self.w, self.h), file=DBG_FILE)
 
     def addShape1(self, c, r, dbg=1):
@@ -151,6 +153,23 @@ class TestGuiB(object):
         self.addCell(c+1, r-1)
         self.addCell(c+1, r-2)
         if dbg: self.printData(self.data, 'addShape2() c={} r={}'.format(c, r))
+
+    def addShape2A(self, c, r, dbg=1):
+        self.addCell(c-2, r+1)
+        self.addCell(c-2, r)
+        self.addCell(c-2, r-1)
+        self.addCell(c-1, r-1)
+        self.addCell(c,   r-1)
+        self.addCell(c+1, r-1)
+        self.addCell(c+1, r-2)
+        if dbg: self.printData(self.data, 'addShape2A() c={} r={}'.format(c, r))
+
+    def addShape2B(self, c, r, dbg=1):
+        for j in range(len(self.cells)):
+            for i in range(len(self.cells[j])):
+                if (i+j) % 2: self.cells[j][i].color = self.ALIVE
+                else:         self.cells[j][i].color = self.ALIVE2
+        if dbg: self.printData(self.data, 'addShape2B() c={} r={}'.format(c, r))
 
     def addShape3(self, c, r, dbg=1):
         self.addCell(c-2, r+1)
