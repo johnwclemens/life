@@ -7,6 +7,8 @@ import sys, os, copy
 sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
 
+def fri(f): return int(round(f))
+
 #event_logger = pyglet.window.event.WindowEventLogger()
 #window.push_handlers(event_logger)
 #window = pyglet.window.Window(resizable=True, visible=False) #move to Life class? #fullscreen=True
@@ -19,11 +21,14 @@ window = pyglet.window.Window(visible=False, resizable=True, screen=screen)
 class Life(object):
     def __init__(self, window):
         print('\n:BGN: init()', file=DBG_FILE)
-        self.ALIVE = (96, 192, 96)
+        self.ALIVE  = (127, 255, 127)
+        self.ALIVE2 = (191, 255, 127)
         self.DEAD = (0, 0, 0)
-        self.MAJ_GRID_LINE = (255, 0, 0)
-        self.NOM_GRID_LINE = (127, 31, 31)
-        self.MIN_GRID_LINE = (63, 15, 15)
+        self.DEAD   = ( 31,   0, 127)
+        self.DEAD2  = ( 15,  15,  63)
+        self.MIN_GRID_LINE = (  0,   0,   0)
+        self.NOM_GRID_LINE = (255,   0,   0)
+        self.MAJ_GRID_LINE = (  0,   0, 255)#(127, 255, 127)
         self.DATA_SET = set('.*')
         self.XLATE = str.maketrans('.*', '01')
         print('DATA_SET={} XLATE={}'.format(self.DATA_SET, self.XLATE), file=DBG_FILE)
@@ -38,10 +43,14 @@ class Life(object):
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
 #        self.nCols = 191#21#273#191#175#383#79#140#11
 #        self.nRows = 117# 7#167#115#115#235#43 #80 #7
-        self.nCols =  93#20
-        self.nRows =  55#20
-        self.cellW = 20
-        self.cellH = 20
+        self.nCols = 11#93#20
+        self.nRows =  7#55#20
+        self.ww = 1900
+        self.wh = 1150
+        self.cellW = 100
+        self.cellH = 100
+        self.cellW = self.ww/self.nCols
+        self.cellH = self.wh/self.nRows
 #        self.nCols = 191#10
 #        self.nRows = 117#10
 #        self.cellW = 10
@@ -50,8 +59,8 @@ class Life(object):
 #        self.nRows = 235#5
 #        self.cellW = 5
 #        self.cellH = 5
-        self.width  = self.nCols * self.cellW + 4
-        self.height = self.nRows * self.cellH + 4
+        self.width  = int(self.nCols * self.cellW + 4)
+        self.height = int(self.nRows * self.cellH + 4)
         self.fullScreen = False
         self.shapeKey = 'TestMe' #'Gosper glider gun'#
         self.inName = 'lexicon-no-wrap.txt'
@@ -81,12 +90,13 @@ class Life(object):
         self.window.set_visible()
         self.batch = pyglet.graphics.Batch()
         (self.data, self.cells, self.lines) = self.grid(c=self.nCols, r=self.nRows, w=self.cellW, h=self.cellH)
-        self.parse()
-        self.addShape(self.shapeKey)
-        self.printData(self.data, 'addShape()')#shapeKey)')
+#        self.parse()
+#        self.addShape(self.shapeKey)
+#        self.printData(self.data, 'addShape()')
+#        self.updateStats()
+        self.addShape2()
+        self.printData(self.data, 'addShape2()')
         self.updateStats()
-#        self.addShape2()
-#        self.printData('{}'.format(txt))
         print(':END: init()\n', file=DBG_FILE)
 
     def clear(self):
@@ -120,24 +130,33 @@ class Life(object):
             else:           lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.MIN_GRID_LINE, batch=self.batch))
         return (data, cells, lines)
 
-    def grid(self, c=100, r=70, w=10, h=10): #c=nCols r=nRows w=cellW h=cellH
+    def grid(self, c=100, r=70, w=10, h=10, dbg=1): #c=nCols r=nRows w=cellW h=cellH
         p = q = 0 #int(c/2-1)
+        x = y = 0
+        m = n = 0
+        ww = c * w
+        wh = r * h
         data, cells, lines = [], [], []
+        if dbg: print('grid(BGN) c={} r={} w={:6.2f} h={:6.2f} ww={} wh={} x={} y={} p={} q={} m={} n={}'.format(c, r, w, h, ww, wh, x, y, p, q, m, n), file=DBG_FILE)
         for j in range(r):
             tmp1, tmp2 = [], []
             for i in range(c):
                 tmp1.append(0)
-                tmp2.append(shapes.Rectangle(i*w+p, j*h+q, w, h, color=self.DEAD, batch=self.batch))
+                if (i+j) % 2: color = self.DEAD
+                else:         color = self.DEAD2
+                tmp2.append(shapes.Rectangle(i*w+p, j*h+q, w, h, color=color, batch=self.batch))
             data.append(tmp1)
             cells.append(tmp2)
         for i in range(c+1):
-            if   i%20 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
-            elif i%10 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.NOM_GRID_LINE, batch=self.batch))
-            else:           lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=self.MIN_GRID_LINE, batch=self.batch))
+            print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, fri(i*w), i*w+x, fri(i*w+x)), file=DBG_FILE)
+            if   i%10 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=color, batch=self.batch))
+            elif i% 5 == 0: lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=color, batch=self.batch))
+            else:           lines.append(shapes.Line(i*w+p, q, i*w+p, r*h+q, width=1, color=color, batch=self.batch))
         for j in range(r+1):
-            if   j%20 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
-            elif j%10 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.NOM_GRID_LINE, batch=self.batch))
-            else:           lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=self.MIN_GRID_LINE, batch=self.batch))
+            print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
+            if   j%10 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=color, batch=self.batch))
+            elif j% 5 == 0: lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=color, batch=self.batch))
+            else:           lines.append(shapes.Line(p, j*h+q, c*w+p, j*h+q, width=1, color=color, batch=self.batch))
         return (data, cells, lines)
 
     def addShape(self, key='TestMe'):

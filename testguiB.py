@@ -25,29 +25,32 @@ class TestGuiB(object):
         self.DEAD2  = ( 15,  15,  63)
         self.MIN_GRID_LINE = (  0,   0,   0)
         self.NOM_GRID_LINE = (255,   0,   0)
-        self.MAJ_GRID_LINE = (  0,   0, 255)#(127, 255, 127)
+        self.MAJ_GRID_LINE = (  0,   0, 255)
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 's' in self.argMap and len(self.argMap['s'])  > 0: self.shape = int(self.argMap['s'][0])
         self.window = window
         if self.shape == 1:
-            self.addGrid(c=19, r=11)
-            self.addShape1( int(round(self.c/2)), int(round(self.r/2)))
+            self.addGrid(c=11, r=7)  # odd odd
+            self.addShape1(self.c//2, self.r//2)
         elif self.shape == 2:
-            self.addGrid2(c=190, r=120) #c=200, r=118 c=20, r=12
-            self.addShape2A(int(round(self.c/2)), int(round(self.r/2)))
+            self.addGrid(c=20, r=12) # even even
+            self.addShape2A(self.c//2, self.r//2)
         elif self.shape == 3:
-            self.addGrid(c=20, r=11)
-            self.addShape3( int(round(self.c/2)), int(round(self.r/2)))
+            self.addGrid(c=20, r=11) # even odd
+            self.addShape3(self.c//2, self.r//2)
+        elif self.shape == 4:
+            self.addGrid(c=13, r=10) # odd even
+            self.addShape4(self.c//2, self.r//2)
         self.window.set_visible()
 
-    def addGrid2(self, c=100, r=75, ww=1900, wh=1150, dbg=1):
+    def addGrid(self, c=100, r=60, ww=1900, wh=1150, dbg=1):
         self.c, self.r = c, r
         self.ww, self.wh = ww, wh
         self.batch = pyglet.graphics.Batch()
-        gmax, gnom, gmin = 25, 5, 1
-        p, q = int(round(c/2)) % gmax, int(round(r/2)) % gmax
+        gmax, gnom, gmin = 10, 5, 1
+        p, q = fri(c/2) % gmax, fri(r/2) % gmax
         m, n,  = 0, 0 #1, 1
         self.window.set_size(ww+m, wh+n)
         w = self.w = self.ww / self.c
@@ -107,22 +110,25 @@ class TestGuiB(object):
                 self.cells[j][i].height   = fri(h)
         for i in range(len(self.clines)):
             self.clines[i].position = (fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y))
-            if dbg: print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, int(round(i*w)), i*w+x, int(round(i*w+x))), file=DBG_FILE)
+            if dbg: print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, fri(i*w), i*w+x, fri(i*w+x)), file=DBG_FILE)
         print(file=DBG_FILE)
         for j in range(len(self.rlines)):
-            self.rlines[j].position = (int(round(x)), int(round(j*h+y)), int(round(c*w+x)), int(round(j*h+y)))
-            if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, int(round(j*h)), j*h+y, int(round(j*h+y))), file=DBG_FILE)
+            self.rlines[j].position = (fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y))
+            if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
         if dbg: print('on_resize(END) ww={} wh={} w={:6.2f} h={:6.2f}'.format(self.ww, self.wh, self.w, self.h), file=DBG_FILE)
 
-    def addShape1(self, c, r, dbg=1):
+    def addShape1(self, c, r, dbg=1): #odd odd
+        if dbg: print('addShape1(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
         self.addCell(c,   r+1)
         self.addCell(c-1, r)
         self.addCell(c,   r)
         self.addCell(c+1, r)
         self.addCell(c+1, r-1)
         if dbg: self.printData(self.data, 'addShape1() c={} r={}'.format(c, r))
+        if dbg: print('addShape1(END) c={} r={}'.format(c, r), file=DBG_FILE)
 
-    def addShape2(self, c, r, dbg=1):
+    def addShape2(self, c, r, dbg=1): #even even
+        if dbg: print('addShape2(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
         self.addCell(c-2, r+1)
         self.addCell(c-2, r)
         self.addCell(c-2, r-1)
@@ -131,8 +137,10 @@ class TestGuiB(object):
         self.addCell(c+1, r-1)
         self.addCell(c+1, r-2)
         if dbg: self.printData(self.data, 'addShape2() c={} r={}'.format(c, r))
+        if dbg: print('addShape2(END) c={} r={}'.format(c, r), file=DBG_FILE)
 
-    def addShape2A(self, c, r, dbg=1):
+    def addShape2A(self, c, r, dbg=1): #even even
+        if dbg: print('addShape2A(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
         self.addCell(c-2, r+1)
         self.addCell(c-2, r)
         self.addCell(c-2, r-1)
@@ -143,15 +151,19 @@ class TestGuiB(object):
         self.addCell(c+1, r)
         self.addCell(c+1, r+1)
         if dbg: self.printData(self.data, 'addShape2A() c={} r={}'.format(c, r))
+        if dbg: print('addShape2A(END) c={} r={}'.format(c, r), file=DBG_FILE)
 
-    def addShape2B(self, c, r, dbg=1):
+    def addShape2B(self, c, r, dbg=1): #checkerboard
+        if dbg: print('addShape2B(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
         for j in range(len(self.cells)):
             for i in range(len(self.cells[j])):
                 if (i+j) % 2: self.cells[j][i].color = self.ALIVE
                 else:         self.cells[j][i].color = self.ALIVE2
         if dbg: self.printData(self.data, 'addShape2B() c={} r={}'.format(c, r))
+        if dbg: print('addShape2B(END) c={} r={}'.format(c, r), file=DBG_FILE)
 
-    def addShape3(self, c, r, dbg=1):
+    def addShape3(self, c, r, dbg=1): #even odd
+        if dbg: print('addShape3(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
         self.addCell(c-2, r+1)
         self.addCell(c-2, r)
         self.addCell(c-1, r)
@@ -159,6 +171,17 @@ class TestGuiB(object):
         self.addCell(c+1, r)
         self.addCell(c+1, r-1)
         if dbg: self.printData(self.data, 'addShape3() c={} r={}'.format(c, r))
+        if dbg: print('addShape3(END) c={} r={}'.format(c, r), file=DBG_FILE)
+
+    def addShape4(self, c, r, dbg=1): #odd even
+        if dbg: print('addShape4(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
+        self.addCell(c-1, r-2)
+        self.addCell(c,   r-1)
+        self.addCell(c-1, r)
+        self.addCell(c+1, r)
+        self.addCell(c+1, r+1)
+        if dbg: self.printData(self.data, 'addShape4() c={} r={}'.format(c, r))
+        if dbg: print('addShape4(END) c={} r={}'.format(c, r), file=DBG_FILE)
 
     def addCell(self, c, r, dbg=1):
         if dbg: print('\n:BGN: addCell() c={} r={}'.format(c, r), file=DBG_FILE)
@@ -180,7 +203,6 @@ class TestGuiB(object):
 
     def on_draw(self):
         self.window.clear()
-#        image.blit(0, 0)
         self.batch.draw()
 
 @window.event
