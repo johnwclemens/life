@@ -15,17 +15,14 @@ def fri(f): return int(round(f))
 #    windows.append(pyglet.window.Window(screen=screen))
 
 window = pyglet.window.Window(visible=False, resizable=True)
-#image = pyglet.image.SolidColorImagePattern((255,255,255,255)).create_image(200, 150)
 
 class TestGui(object):
     def __init__(self, window):
-        self.ALIVE  = (127, 255, 127)
-        self.ALIVE2 = (191, 255, 127)
-        self.DEAD   = ( 31,   0, 127)
-        self.DEAD2  = ( 15,  15,  63)
-        self.MIN_GRID_LINE = (  0,   0,   0)
-        self.NOM_GRID_LINE = (255,   0,   0)
-        self.MAJ_GRID_LINE = (  0,   0, 255)
+        self.MIN, self.NOM, self.MAX = 0, 1, 2
+        self.ALIVE  =  (127, 255, 127)
+        self.ALIVE2 =  (191, 255, 127)
+        self.DEAD   = [( 31,  31, 127), (31,  15,  63)]
+        self.MESH   = [(  0, 127, 255), (255, 63,  31), (255, 255, 255)]
         self.DATA_SET = set('.*')
         self.XLATE = str.maketrans('.*', '01')
         self.savedData = []
@@ -47,6 +44,7 @@ class TestGui(object):
         self.wh = 1150
         self.cw = self.ww / self.wc
         self.ch = self.wh / self.wr
+        self.fullScreen = False
         self.inName = 'lexicon-no-wrap.txt'
         self.getNNCount = self.getNNCountHard
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -59,6 +57,7 @@ class TestGui(object):
         if 't' in self.argMap and len(self.argMap['t'])  > 0: self.testShape  = int(self.argMap['t'][0])
         if 'k' in self.argMap and len(self.argMap['k'])  > 0: self.shapeKey   = self.argMap['k'][0]
         if 'f' in self.argMap and len(self.argMap['f'])  > 0: self.inName     = self.argMap['f'][0]
+        if 'F' in self.argMap and len(self.argMap['F'])  > 0: self.fullScreen = True
         if 'n' in self.argMap and len(self.argMap['n']) == 0: self.getNNCount = self.getNNCountWrap
         print('wc={}'.format(self.wc), file=DBG_FILE)
         print('wr={}'.format(self.wr), file=DBG_FILE)
@@ -70,35 +69,23 @@ class TestGui(object):
         print('inName={}'.format(self.inName), file=DBG_FILE)
         print('getNNCount={}'.format(self.getNNCount), file=DBG_FILE)
         self.window = window
-        self.addGrid(c=self.wc, r=self.wr)
+        self.addGrid(self.wc, self.wr, self.ww, self.wh)
 #        self.addGrid(c=37, r=19) # odd odd
 #        self.addGrid(c=20, r=12) # even even
 #        self.addGrid(c=20, r=11) # even odd
 #        self.addGrid(c=13, r=10) # odd even
-        if self.testShape == 1:
-#            self.addGrid(c=11, r=7)  # odd odd
-            self.addShape1(self.wc//2, self.wr//2)
-        elif self.testShape == 2:
-#            self.addGrid(c=20, r=12) # even even
-            self.addShape2A(self.wc//2, self.wr//2)
-        elif self.testShape == 3:
-#            self.addGrid(c=20, r=11) # even odd
-            self.addShape3(self.wc//2, self.wr//2)
-        elif self.testShape == 4:
-#            self.addGrid(c=13, r=10) # odd even
-            self.addShape4(self.wc//2, self.wr//2)
         self.window.set_visible()
         self.parse()
         self.addShape(self.wc//2, self.wr//2, self.shapeKey)
         self.printData(self.data, 'addShape()')
         self.updateStats()
 
-    def addGrid(self, c=100, r=60, ww=1900, wh=1150, dbg=1):
+    def addGrid(self, c, r, ww, wh, dbg=1):
         self.wc, self.wr = c, r
         self.ww, self.wh = ww, wh
         self.batch = pyglet.graphics.Batch()
-        gmax, gnom, gmin = 10, 5, 1
-        p, q = fri(c/2) % gmax, fri(r/2) % gmax
+        mesh = [1, 5, 10]
+        p, q = fri(c/2) % mesh[self.MAX], fri(r/2) % mesh[self.MAX]
         m, n,  = 0, 0 #1, 1
         self.window.set_size(ww+m, wh+n)
         w = self.cw = self.ww / self.wc
@@ -111,37 +98,27 @@ class TestGui(object):
             tmp1, tmp2 = [], []
             for i in range(c):
                 tmp1.append(0)
-                if (i+j) % 2: color = self.DEAD
-                else:         color = self.DEAD2
+                color = self.DEAD[(i+j)%2]
                 tmp2.append(shapes.Rectangle(fri(i*w+x), fri(j*h+y), fri(w), fri(h), color=color, batch=self.batch))
             self.data.append(tmp1)
             self.cells.append(tmp2)
         for i in range(c+1):
             print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, fri(i*w), i*w+x, fri(i*w+x)), file=DBG_FILE, end=' ')
-            if   (i-p) % gmax == 0:
-                self.clines.append(shapes.Line(fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y), width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
-                print('(i-p)%{}={}'.format(gmax, (i-p) % gmax), file=DBG_FILE)
-            elif (i-p) % gnom == 0:
-                self.clines.append(shapes.Line(fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y), width=1, color=self.NOM_GRID_LINE, batch=self.batch))
-                print('(i-p)%{}={}'.format(gnom, (i-p) % gnom), file=DBG_FILE)
-            elif (i-p) % gmin == 0:
-                self.clines.append(shapes.Line(fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y), width=1, color=self.MIN_GRID_LINE, batch=self.batch))
-                print('(i-p)%{}={}'.format(gmin, (i-p) % gmin), file=DBG_FILE)
+            if   (i-p) % mesh[self.MIN] == 0: color = self.MESH[self.MIN]; print('(i-p)%{}={}'.format(mesh[self.MIN], (i-p) % mesh[self.MIN]), file=DBG_FILE)
+            elif (i-p) % mesh[self.NOM] == 0: color = self.MESH[self.NOM]; print('(i-p)%{}={}'.format(mesh[self.NOM], (i-p) % mesh[self.NOM]), file=DBG_FILE)
+            elif (i-p) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]; print('(i-p)%{}={}'.format(mesh[self.MAX], (i-p) % mesh[self.MAX]), file=DBG_FILE)
+            self.clines.append(shapes.Line(fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y), width=1, color=color, batch=self.batch))
         print(file=DBG_FILE)
         for j in range(r+1):
             print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE, end=' ')
-            if   (j-q) % gmax == 0:
-                self.rlines.append(shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=self.MAJ_GRID_LINE, batch=self.batch))
-                print('(j-q)%{}={}'.format(gmax, (j-q) % gmax), file=DBG_FILE)
-            elif (j-q) % gnom == 0:
-                self.rlines.append(shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=self.NOM_GRID_LINE, batch=self.batch))
-                print('(j-q)%{}={}'.format(gnom, (j-q) % gnom), file=DBG_FILE)
-            elif (j-q) % gmin == 0:
-                self.rlines.append(shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=self.MIN_GRID_LINE, batch=self.batch))
-                print('(j-q)%{}={}'.format(gmin, (j-q) % gmin), file=DBG_FILE)
+            if   (j-q) % mesh[self.MIN] == 0: color = self.MESH[self.MIN]; print('(j-q)%{}={}'.format(mesh[self.MIN], (j-q) % mesh[self.MIN]), file=DBG_FILE)
+            elif (j-q) % mesh[self.NOM] == 0: color = self.MESH[self.NOM]; print('(j-q)%{}={}'.format(mesh[self.NOM], (j-q) % mesh[self.NOM]), file=DBG_FILE)
+            elif (j-q) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]; print('(j-q)%{}={}'.format(mesh[self.MAX], (j-q) % mesh[self.MAX]), file=DBG_FILE)
+            self.rlines.append(shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=color, batch=self.batch))
         if dbg: print('addGrid(END) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f}'.format(self.cw, self.ch, self.wc, self.wr, self.ww, self.wh, x, y), file=DBG_FILE)
 
     def on_resize(self, width, height, dbg=1):
+        return
         ww = self.ww = width
         wh = self.wh = height
         m, n = 0, 0 #1, 1
@@ -188,71 +165,24 @@ class TestGui(object):
         txt += ' done[{}] undone[{}]'.format(len(self.done), len(self.undone))
         print(  ':END: {}\n'.format(txt), file=DBG_FILE)
 
-    def addShape1(self, c, r, dbg=1): #odd odd
-        if dbg: print('addShape1(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
+    def addShapeA(self, c, r, dbg=1): #checkerboard
+        if dbg: print('addShapeA(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
+        for j in range(len(self.cells)):
+            for i in range(len(self.cells[j])):
+                if (i+j) % 2: self.cells[j][i].color = self.ALIVE
+                else:         self.cells[j][i].color = self.ALIVE2
+        if dbg: self.printData(self.data, 'addShapeA() c={} r={}'.format(c, r))
+        if dbg: print('addShapeA(END) c={} r={}'.format(c, r), file=DBG_FILE)
+
+    def addShapeB(self, c, r, dbg=1): #odd odd
+        if dbg: print('addShapeB(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
         self.addCell(c,   r+1)
         self.addCell(c-1, r)
         self.addCell(c,   r)
         self.addCell(c+1, r)
         self.addCell(c+1, r-1)
-        if dbg: self.printData(self.data, 'addShape1() c={} r={}'.format(c, r))
-        if dbg: print('addShape1(END) c={} r={}'.format(c, r), file=DBG_FILE)
-
-    def addShape2(self, c, r, dbg=1): #even even
-        if dbg: print('addShape2(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
-        self.addCell(c-2, r+1)
-        self.addCell(c-2, r)
-        self.addCell(c-2, r-1)
-        self.addCell(c-1, r-1)
-        self.addCell(c,   r-1)
-        self.addCell(c+1, r-1)
-        self.addCell(c+1, r-2)
-        if dbg: self.printData(self.data, 'addShape2() c={} r={}'.format(c, r))
-        if dbg: print('addShape2(END) c={} r={}'.format(c, r), file=DBG_FILE)
-
-    def addShape2A(self, c, r, dbg=1): #even even
-        if dbg: print('addShape2A(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
-        self.addCell(c-2, r+1)
-        self.addCell(c-2, r)
-        self.addCell(c-2, r-1)
-        self.addCell(c-1, r-1)
-        self.addCell(c,   r-1)
-        self.addCell(c+1, r-1)
-        self.addCell(c+1, r-2)
-        self.addCell(c+1, r)
-        self.addCell(c+1, r+1)
-        if dbg: self.printData(self.data, 'addShape2A() c={} r={}'.format(c, r))
-        if dbg: print('addShape2A(END) c={} r={}'.format(c, r), file=DBG_FILE)
-
-    def addShape2B(self, c, r, dbg=1): #checkerboard
-        if dbg: print('addShape2B(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
-        for j in range(len(self.cells)):
-            for i in range(len(self.cells[j])):
-                if (i+j) % 2: self.cells[j][i].color = self.ALIVE
-                else:         self.cells[j][i].color = self.ALIVE2
-        if dbg: self.printData(self.data, 'addShape2B() c={} r={}'.format(c, r))
-        if dbg: print('addShape2B(END) c={} r={}'.format(c, r), file=DBG_FILE)
-
-    def addShape3(self, c, r, dbg=1): #even odd
-        if dbg: print('addShape3(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
-        self.addCell(c-2, r+1)
-        self.addCell(c-2, r)
-        self.addCell(c-1, r)
-        self.addCell(c,   r)
-        self.addCell(c+1, r)
-        self.addCell(c+1, r-1)
-        if dbg: self.printData(self.data, 'addShape3() c={} r={}'.format(c, r))
-        if dbg: print('addShape3(END) c={} r={}'.format(c, r), file=DBG_FILE)
-
-    def addShape4(self, c, r, dbg=1): #odd even
-        if dbg: print('addShape4(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
-        self.addCell(c-1, r-2)
-        self.addCell(c,   r-1)
-        self.addCell(c-1, r)
-        self.addCell(c+1, r)
-        self.addCell(c+1, r+1)
-        if dbg: self.printData(self.data, 'addShape4() c={} r={}'.format(c, r))
-        if dbg: print('addShape4(END) c={} r={}'.format(c, r), file=DBG_FILE)
+        if dbg: self.printData(self.data, 'addShapeB() c={} r={}'.format(c, r))
+        if dbg: print('addShapeB(END) c={} r={}'.format(c, r), file=DBG_FILE)
 
     def addCell(self, c, r, dbg=0):
         if dbg: print('\n:BGN: addCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
@@ -261,29 +191,6 @@ class TestGui(object):
         self.cells[r][c].color = self.ALIVE
         if dbg: print(':END: addCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
 
-    '''
-    def getCellColor(self, s, p):
-        if   s == 0:
-            if   p == 0: return self.DEAD
-            else:        return self.DEAD2
-        elif s == 1:     return self.ALIVE
-
-    def getCellColor(self, c, r):
-        if   self.data[r][c] == 0:
-            if (c+r) % 2 == 0:     return self.DEAD
-            else:                  return self.DEAD2
-        elif self.data[r][c] == 1: return self.ALIVE
-
-    def updateCell(self, c, r, s, dbg=0):
-        if dbg: print('\n:BGN: addCell() c={} r={}'.format(c, r), file=DBG_FILE)
-#        if self.data[r][c] == 0: self.pop += 1
-        if   s == 0:
-            self.data[r][c] = 0
-        elif s == 1:
-            self.data[r][c] = 1
-        self.cells[r][c].color = self.getCellColor(c, r)
-        if dbg: print(':END: addCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
-    '''
     def update(self, dbg=1):
         self.done.append(self.data)
         self.updateDataCells()
@@ -304,15 +211,15 @@ class TestGui(object):
             else: print('{}'.format(n), file=DBG_FILE, end='')
         if self.data[r][c] == 1:
             if n == 2 or n == 3: data[r][c] = 1; self.cells[r][c].color = self.ALIVE
-            else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD;  self.pop -= 1
-        elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE; self.pop += 1
-        else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD
+            else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c)%2]; self.pop -= 1
+        elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE;         self.pop += 1
+        else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c)%2]
 
     def removeCell(self, c, r, dbg=0):
         if dbg: print('\n:BGN: removeCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
         if self.data[r][c] == 1: self.pop -= 1
         self.data[r][c] = 0
-        self.cells[r][c].color = self.DEAD
+        self.cells[r][c].color = self.DEAD[(r+c)%2]
         if dbg: print(':END: removeCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
 
     def saveShape(self):
@@ -346,8 +253,7 @@ class TestGui(object):
             self.undone.append(self.data)
             for r in range(self.wr):
                 for c in range(self.wc):
-                    if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD
-                    else:                    self.cells[r][c].color = self.ALIVE
+                    cells[r][c].color = self.DEAD[(r+c)%2]
         self.updateStats()
         self.printData(self.data, 'undo()')
         print(':END: undo() done[{}] undone[{}]\n'.format(len(self.done), len(self.undone)), file=DBG_FILE)
