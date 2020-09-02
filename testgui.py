@@ -104,40 +104,39 @@ class TestGui(object):
             self.cells.append(tmp2)
         for i in range(c+1):
             print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, fri(i*w), i*w+x, fri(i*w+x)), file=DBG_FILE, end=' ')
-            if   (i-p) % mesh[self.MIN] == 0: color = self.MESH[self.MIN]; print('(i-p)%{}={}'.format(mesh[self.MIN], (i-p) % mesh[self.MIN]), file=DBG_FILE)
+            if   (i-p) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]; print('(i-p)%{}={}'.format(mesh[self.MAX], (i-p) % mesh[self.MAX]), file=DBG_FILE)
             elif (i-p) % mesh[self.NOM] == 0: color = self.MESH[self.NOM]; print('(i-p)%{}={}'.format(mesh[self.NOM], (i-p) % mesh[self.NOM]), file=DBG_FILE)
-            elif (i-p) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]; print('(i-p)%{}={}'.format(mesh[self.MAX], (i-p) % mesh[self.MAX]), file=DBG_FILE)
+            elif (i-p) % mesh[self.MIN] == 0: color = self.MESH[self.MIN]; print('(i-p)%{}={}'.format(mesh[self.MIN], (i-p) % mesh[self.MIN]), file=DBG_FILE)
             self.clines.append(shapes.Line(fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y), width=1, color=color, batch=self.batch))
         print(file=DBG_FILE)
         for j in range(r+1):
             print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE, end=' ')
-            if   (j-q) % mesh[self.MIN] == 0: color = self.MESH[self.MIN]; print('(j-q)%{}={}'.format(mesh[self.MIN], (j-q) % mesh[self.MIN]), file=DBG_FILE)
+            if   (j-q) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]; print('(j-q)%{}={}'.format(mesh[self.MAX], (j-q) % mesh[self.MAX]), file=DBG_FILE)
             elif (j-q) % mesh[self.NOM] == 0: color = self.MESH[self.NOM]; print('(j-q)%{}={}'.format(mesh[self.NOM], (j-q) % mesh[self.NOM]), file=DBG_FILE)
-            elif (j-q) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]; print('(j-q)%{}={}'.format(mesh[self.MAX], (j-q) % mesh[self.MAX]), file=DBG_FILE)
+            elif (j-q) % mesh[self.MIN] == 0: color = self.MESH[self.MIN]; print('(j-q)%{}={}'.format(mesh[self.MIN], (j-q) % mesh[self.MIN]), file=DBG_FILE)
             self.rlines.append(shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=color, batch=self.batch))
         if dbg: print('addGrid(END) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f}'.format(self.cw, self.ch, self.wc, self.wr, self.ww, self.wh, x, y), file=DBG_FILE)
 
     def on_resize(self, width, height, dbg=1):
-        return
         ww = self.ww = width
         wh = self.wh = height
         m, n = 0, 0 #1, 1
         x, y = self.x, self.y
         if dbg: print('on_resize(BGN) width={} height={} ww={} wh={} cw={:6.2f} ch={:6.2f}'.format(width, height, self.ww, self.wh, self.cw, self.ch), file=DBG_FILE)
         c, r = self.wc, self.wr
-        w = self.ww / c
-        h = self.wh / r
+        w = self.cw = ww / c
+        h = self.ch = wh / r
         if dbg: print('on_resize() w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f} m={} n={}'.format(w, h, c, r, ww, wh, x, y, m, n), file=DBG_FILE)
-        for j in range(self.wr):
-            for i in range(self.wc):
+        for j in range(r):
+            for i in range(c):
                 self.cells[j][i].position = (fri(i*w+x), fri(j*h+y))
                 self.cells[j][i].width    = fri(w)
                 self.cells[j][i].height   = fri(h)
-        for i in range(len(self.clines)):
+        for i in range(c+1): #len(self.clines)):
             self.clines[i].position = (fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y))
             if dbg: print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, fri(i*w), i*w+x, fri(i*w+x)), file=DBG_FILE)
         print(file=DBG_FILE)
-        for j in range(len(self.rlines)):
+        for j in range(r+1): #len(self.rlines)):
             self.rlines[j].position = (fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y))
             if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
         if dbg: print('on_resize(END) ww={} wh={} cw={:6.2f} ch={:6.2f}'.format(self.ww, self.wh, self.cw, self.ch), file=DBG_FILE)
@@ -322,7 +321,7 @@ class TestGui(object):
         return n
 
     def updateStats(self):
-        print('updateStats() pop={} c={} r={} len(cells[0])={} len(cells)={}'.format(self.pop, self.wc, self.wr, len(self.cells[0]), len(self.cells)), file=DBG_FILE)
+#        print('updateStats() pop={} c={} r={} len(cells[0])={} len(cells)={}'.format(self.pop, self.wc, self.wr, len(self.cells[0]), len(self.cells)), file=DBG_FILE)
         assert self.pop >= 0
         assert self.wr == len(self.cells)
         assert self.wc == len(self.cells[0])
@@ -334,7 +333,7 @@ class TestGui(object):
         else:            self.stats['S_IDENS'] = -1
         self.displayStats()
 
-    def displayStats(self, dbg=1):
+    def displayStats(self, dbg=0):
 #        txt = 'Gen={} Pop={} Area={:,} [{}x{}] Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.wc, self.wr, self.stats['S_DENS'], self.stats['S_IDENS'])
         txt = 'Gen={} Pop={} Area={:,} done={} undone={} Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], len(self.done), len(self.undone), self.stats['S_DENS'], self.stats['S_IDENS'])
         self.window.set_caption(txt)
@@ -407,9 +406,9 @@ class TestGui(object):
         elif symbol == key.LEFT:                             self.undo()
 
     def on_mouse_release(self, x, y, button, modifiers): #pyglet.window.mouse.MIDDLE #pyglet.window.mouse.LEFT #pyglet.window.mouse.RIGHT
-        c, r = int(x / self.cw - 1), int(y / self.ch - 1)
-        print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} d[{}][{}]={}'.format(button, modifiers, x, y, self.cw, self.ch, r, c, self.data[r][c]), flush=True)
-        print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} d[{}][{}]={}'.format(button, modifiers, x, y, self.cw, self.ch, r, c, self.data[r][c]), file=DBG_FILE)
+        c, r = int(x / self.cw), int(y / self.ch)
+        print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} c={} r={} d[r][c]={}'.format(button, modifiers, x, y, self.cw, self.ch, c, r, self.data[r][c]), flush=True)
+        print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} c={} r={} d[r][c]={}'.format(button, modifiers, x, y, self.cw, self.ch, c, r, self.data[r][c]), file=DBG_FILE)
         self.toggleCell(c, r)
 
     def on_draw(self):
