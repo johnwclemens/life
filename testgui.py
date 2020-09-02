@@ -36,75 +36,73 @@ class TestGui(object):
         self.shapes = {}
         self.stats = {}
         self.testShape = 0
-        self.shapeKey = 'TestMe' #'Gosper glider gun'#
+        self.shapeKey = 'TestOddOdd' #'Gosper glider gun'#
         self.shapes = {}
         self.stats = {}
         self.argMap = {}
         self.argMap = cmdArgs.parseCmdLine(dbg=1)
-        self.nCols = 200
-        self.nRows = 100
+        self.wc = 101
+        self.wr = 57
         self.ww = 1900
         self.wh = 1150
-        self.cellW = self.ww/self.nCols
-        self.cellH = self.wh/self.nRows
-        self.width  = int(self.nCols * self.cellW + 4)
-        self.height = int(self.nRows * self.cellH + 4)
+        self.cw = self.ww / self.wc
+        self.ch = self.wh / self.wr
         self.inName = 'lexicon-no-wrap.txt'
         self.getNNCount = self.getNNCountHard
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
-        if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.nCols      = int(self.argMap['c'][0])
-        if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.nRows      = int(self.argMap['r'][0])
-        if 'w' in self.argMap and len(self.argMap['w'])  > 0: self.cellW      = int(self.argMap['w'][0])
-        if 'h' in self.argMap and len(self.argMap['h'])  > 0: self.cellH      = int(self.argMap['h'][0])
-        if 'W' in self.argMap and len(self.argMap['W'])  > 0: self.width      = int(self.argMap['W'][0])
-        if 'H' in self.argMap and len(self.argMap['H'])  > 0: self.height     = int(self.argMap['H'][0])
+        if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.wc         = int(self.argMap['c'][0])
+        if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.wr         = int(self.argMap['r'][0])
+        if 'w' in self.argMap and len(self.argMap['w'])  > 0: self.cw         = int(self.argMap['w'][0])
+        if 'h' in self.argMap and len(self.argMap['h'])  > 0: self.ch         = int(self.argMap['h'][0])
+        if 'W' in self.argMap and len(self.argMap['W'])  > 0: self.ww         = int(self.argMap['W'][0])
+        if 'H' in self.argMap and len(self.argMap['H'])  > 0: self.wh         = int(self.argMap['H'][0])
         if 't' in self.argMap and len(self.argMap['t'])  > 0: self.testShape  = int(self.argMap['t'][0])
         if 'k' in self.argMap and len(self.argMap['k'])  > 0: self.shapeKey   = self.argMap['k'][0]
         if 'f' in self.argMap and len(self.argMap['f'])  > 0: self.inName     = self.argMap['f'][0]
         if 'n' in self.argMap and len(self.argMap['n']) == 0: self.getNNCount = self.getNNCountWrap
-        print('nCols={}'.format(self.nCols), file=DBG_FILE)
-        print('nRows={}'.format(self.nRows), file=DBG_FILE)
-        print('cellW={}'.format(self.cellW), file=DBG_FILE)
-        print('cellH={}'.format(self.cellH), file=DBG_FILE)
-        print('width={}'.format(self.width), file=DBG_FILE)
-        print('height={}'.format(self.height), file=DBG_FILE)
+        print('wc={}'.format(self.wc), file=DBG_FILE)
+        print('wr={}'.format(self.wr), file=DBG_FILE)
+        print('cw={}'.format(self.cw), file=DBG_FILE)
+        print('ch={}'.format(self.ch), file=DBG_FILE)
+        print('ww={}'.format(self.ww), file=DBG_FILE)
+        print('wh={}'.format(self.wh), file=DBG_FILE)
         print('shapeKey={}'.format(self.shapeKey), file=DBG_FILE)
         print('inName={}'.format(self.inName), file=DBG_FILE)
         print('getNNCount={}'.format(self.getNNCount), file=DBG_FILE)
         self.window = window
-        self.addGrid(c=self.nCols, r=self.nRows)
+        self.addGrid(c=self.wc, r=self.wr)
 #        self.addGrid(c=37, r=19) # odd odd
 #        self.addGrid(c=20, r=12) # even even
 #        self.addGrid(c=20, r=11) # even odd
 #        self.addGrid(c=13, r=10) # odd even
         if self.testShape == 1:
 #            self.addGrid(c=11, r=7)  # odd odd
-            self.addShape1(self.nCols//2, self.nRows//2)
+            self.addShape1(self.wc//2, self.wr//2)
         elif self.testShape == 2:
 #            self.addGrid(c=20, r=12) # even even
-            self.addShape2A(self.nCols//2, self.nRows//2)
+            self.addShape2A(self.wc//2, self.wr//2)
         elif self.testShape == 3:
 #            self.addGrid(c=20, r=11) # even odd
-            self.addShape3(self.nCols//2, self.nRows//2)
+            self.addShape3(self.wc//2, self.wr//2)
         elif self.testShape == 4:
 #            self.addGrid(c=13, r=10) # odd even
-            self.addShape4(self.nCols//2, self.nRows//2)
+            self.addShape4(self.wc//2, self.wr//2)
         self.window.set_visible()
         self.parse()
-        self.addShape(self.nCols//2, self.nRows//2, self.shapeKey)
+        self.addShape(self.wc//2, self.wr//2, self.shapeKey)
         self.printData(self.data, 'addShape()')
         self.updateStats()
 
     def addGrid(self, c=100, r=60, ww=1900, wh=1150, dbg=1):
-        self.nCols, self.nRows = c, r
+        self.wc, self.wr = c, r
         self.ww, self.wh = ww, wh
         self.batch = pyglet.graphics.Batch()
         gmax, gnom, gmin = 10, 5, 1
         p, q = fri(c/2) % gmax, fri(r/2) % gmax
         m, n,  = 0, 0 #1, 1
         self.window.set_size(ww+m, wh+n)
-        w = self.w = self.ww / self.nCols
-        h = self.h = self.wh / self.nRows
+        w = self.cw = self.ww / self.wc
+        h = self.ch = self.wh / self.wr
         x = self.x = 0
         y = self.y = 0
         self.data, self.cells, self.clines, self.rlines = [], [], [], []
@@ -141,20 +139,20 @@ class TestGui(object):
             elif (j-q) % gmin == 0:
                 self.rlines.append(shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=self.MIN_GRID_LINE, batch=self.batch))
                 print('(j-q)%{}={}'.format(gmin, (j-q) % gmin), file=DBG_FILE)
-        if dbg: print('addGrid(END) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f}'.format(self.w, self.h, self.nCols, self.nRows, self.ww, self.wh, x, y), file=DBG_FILE)
+        if dbg: print('addGrid(END) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f}'.format(self.cw, self.ch, self.wc, self.wr, self.ww, self.wh, x, y), file=DBG_FILE)
 
     def on_resize(self, width, height, dbg=1):
         ww = self.ww = width
         wh = self.wh = height
         m, n = 0, 0 #1, 1
         x, y = self.x, self.y
-        if dbg: print('on_resize(BGN) width={} height={} ww={} wh={} w={:6.2f} h={:6.2f}'.format(width, height, self.ww, self.wh, self.w, self.h), file=DBG_FILE)
-        c, r = self.nCols, self.nRows
-        w = self.w = self.ww / c
-        h = self.h = self.wh / r
+        if dbg: print('on_resize(BGN) width={} height={} ww={} wh={} cw={:6.2f} ch={:6.2f}'.format(width, height, self.ww, self.wh, self.cw, self.ch), file=DBG_FILE)
+        c, r = self.wc, self.wr
+        w = self.ww / c
+        h = self.wh / r
         if dbg: print('on_resize() w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f} m={} n={}'.format(w, h, c, r, ww, wh, x, y, m, n), file=DBG_FILE)
-        for j in range(self.nRows):
-            for i in range(self.nCols):
+        for j in range(self.wr):
+            for i in range(self.wc):
                 self.cells[j][i].position = (fri(i*w+x), fri(j*h+y))
                 self.cells[j][i].width    = fri(w)
                 self.cells[j][i].height   = fri(h)
@@ -165,7 +163,7 @@ class TestGui(object):
         for j in range(len(self.rlines)):
             self.rlines[j].position = (fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y))
             if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
-        if dbg: print('on_resize(END) ww={} wh={} w={:6.2f} h={:6.2f}'.format(self.ww, self.wh, self.w, self.h), file=DBG_FILE)
+        if dbg: print('on_resize(END) ww={} wh={} cw={:6.2f} ch={:6.2f}'.format(self.ww, self.wh, self.cw, self.ch), file=DBG_FILE)
 
     def addShape(self, c, r, key='TestMe'):
         self.done.append(self.data)
@@ -175,7 +173,7 @@ class TestGui(object):
         cc = c - w//2
         rr = r + h//2
         a = w * h
-        txt = 'addShape() nc={} nr={} c={} r={} cc={} rr={} [{}x{}={}]'.format(self.nCols, self.nRows, c, r, cc, rr, w, h, a)
+        txt = 'addShape() nc={} nr={} c={} r={} cc={} rr={} [{}x{}={}]'.format(self.wc, self.wr, c, r, cc, rr, w, h, a)
         print('\n:BGN: {}'.format(txt), file=DBG_FILE)
         print('info1={}'.format(v[1]), file=DBG_FILE)
         if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
@@ -294,8 +292,8 @@ class TestGui(object):
 
     def updateDataCells(self, dbg=1):
         data = copy.deepcopy(self.data)
-        for r in range(self.nRows-1, -1, -1):
-            for c in range(self.nCols):
+        for r in range(self.wr-1, -1, -1):
+            for c in range(self.wc):
                 self.updateDataCell(c, r, data)
         self.data = data
 
@@ -337,8 +335,8 @@ class TestGui(object):
 
     def calcPop(self):
         self.pop = 0
-        for r in range(self.nRows):
-            for c in range(self.nCols):
+        for r in range(self.wr):
+            for c in range(self.wc):
                 if self.data[r][c] == 1: self.pop += 1
 
     def undo(self, pc=1): #pc=?
@@ -346,8 +344,8 @@ class TestGui(object):
         if len(self.done) > 0:
             self.data = self.done.pop(-1)
             self.undone.append(self.data)
-            for r in range(self.nRows):
-                for c in range(self.nCols):
+            for r in range(self.wr):
+                for c in range(self.wc):
                     if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD
                     else:                    self.cells[r][c].color = self.ALIVE
         self.updateStats()
@@ -404,7 +402,7 @@ class TestGui(object):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
-                n += self.data[(r+j+self.nRows)%self.nRows][(c+i+self.nCols)%self.nCols]
+                n += self.data[(r+j+self.wr)%self.wr][(c+i+self.wc)%self.wc]
         n -= self.data[r][c]
         return n
 
@@ -412,26 +410,26 @@ class TestGui(object):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
-                if r+j >= 0 and c+i >= 0 and r+j < self.nRows and c+i < self.nCols:
+                if r+j >= 0 and c+i >= 0 and r+j < self.wr and c+i < self.wc:
                     n += self.data[r+j][c+i]
         n -= self.data[r][c]
         return n
 
     def updateStats(self):
-        print('updateStats() pop={} nCols={} nRows={} len(cells[0])={} len(cells)={}'.format(self.pop, self.nCols, self.nRows, len(self.cells[0]), len(self.cells)), file=DBG_FILE)
+        print('updateStats() pop={} c={} r={} len(cells[0])={} len(cells)={}'.format(self.pop, self.wc, self.wr, len(self.cells[0]), len(self.cells)), file=DBG_FILE)
         assert self.pop >= 0
-        assert self.nRows == len(self.cells)
-        assert self.nCols == len(self.cells[0])
+        assert self.wr == len(self.cells)
+        assert self.wc == len(self.cells[0])
         self.stats['S_POP'] = self.pop
         self.stats['S_GEN'] = len(self.done)# - 1
-        self.stats['S_AREA'] = self.nRows * self.nCols
+        self.stats['S_AREA'] = self.wr * self.wc
         self.stats['S_DENS'] = 100 * self.stats['S_POP'] / self.stats['S_AREA']
         if self.pop > 0: self.stats['S_IDENS'] = int(self.stats['S_AREA'] / self.stats['S_POP'])
         else:            self.stats['S_IDENS'] = -1
         self.displayStats()
 
     def displayStats(self, dbg=1):
-#        txt = 'Gen={} Pop={} Area={:,} [{}x{}] Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.nCols, self.nRows, self.stats['S_DENS'], self.stats['S_IDENS'])
+#        txt = 'Gen={} Pop={} Area={:,} [{}x{}] Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.wc, self.wr, self.stats['S_DENS'], self.stats['S_IDENS'])
         txt = 'Gen={} Pop={} Area={:,} done={} undone={} Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], len(self.done), len(self.undone), self.stats['S_DENS'], self.stats['S_IDENS'])
         self.window.set_caption(txt)
         if dbg: print('{}'.format(txt), file=DBG_FILE)
@@ -449,7 +447,7 @@ class TestGui(object):
 #                    print(d, file=DBG_FILE)
             else: noneKeys.append(k)
         for k in noneKeys: print('noneKeys=[{}]\ninfo1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(k, self.shapes[k][1], self.shapes[k][2], self.shapes[k][3]), file=DBG_FILE)
-        for k in dataKeys: print('dataKeys=[{}] size=[{} x {}={}]'.format(k, len(self.shapes[k][0]), len(self.shapes[k][0][0]), len(self.shapes[k][0])*len(self.shapes[k][0][0])), file=DBG_FILE)
+        for k in dataKeys: print('dataKeys=[{}] size=[{}x{}={}]'.format(k, len(self.shapes[k][0]), len(self.shapes[k][0][0]), len(self.shapes[k][0])*len(self.shapes[k][0][0])), file=DBG_FILE)
         print(':END: printShapes() len(shapes)={} len(noneKeys)={} len(valKeys)={}\n'.format(len(self.shapes), len(noneKeys), len(dataKeys)), file=DBG_FILE)
 
     @staticmethod
@@ -503,8 +501,9 @@ class TestGui(object):
         elif symbol == key.LEFT:                             self.undo()
 
     def on_mouse_release(self, x, y, button, modifiers): #pyglet.window.mouse.MIDDLE #pyglet.window.mouse.LEFT #pyglet.window.mouse.RIGHT
-        r, c = int(y/self.cellH), int(x/self.cellW)
-        print('on_mouse_release() x={} y={} b={} m={} d[{}][{}]={}'.format(x, y, button, modifiers, r, c, self.data[r][c]), file=DBG_FILE)
+        c, r = int(x / self.cw - 1), int(y / self.ch - 1)
+        print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} d[{}][{}]={}'.format(button, modifiers, x, y, self.cw, self.ch, r, c, self.data[r][c]), flush=True)
+        print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} d[{}][{}]={}'.format(button, modifiers, x, y, self.cw, self.ch, r, c, self.data[r][c]), file=DBG_FILE)
         self.toggleCell(c, r)
 
     def on_draw(self):
