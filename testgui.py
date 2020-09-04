@@ -2,7 +2,7 @@ import pyglet
 from pyglet import shapes
 from pyglet.window import event
 from pyglet.window import key
-import sys, os, copy
+import sys, os, copy, msvcrt
 sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
 
@@ -27,6 +27,10 @@ class TestGui(object):
         self.XLATE = str.maketrans('.*', '01')
         self.savedData = []
         self.savedDone = []
+        self.dispatch = None
+        self.buffer = None
+        self.steps = 0
+        self.gen = 0
         self.pop = 0
         self.done = []
         self.undone = []
@@ -61,8 +65,8 @@ class TestGui(object):
         if 'n' in self.argMap and len(self.argMap['n']) == 0: self.getNNCount = self.getNNCountWrap
         print('wc={}'.format(self.wc), file=DBG_FILE)
         print('wr={}'.format(self.wr), file=DBG_FILE)
-        print('cw={}'.format(self.cw), file=DBG_FILE)
-        print('ch={}'.format(self.ch), file=DBG_FILE)
+        print('cw={:6.2f}'.format(self.cw), file=DBG_FILE)
+        print('ch={:6.2f}'.format(self.ch), file=DBG_FILE)
         print('ww={}'.format(self.ww), file=DBG_FILE)
         print('wh={}'.format(self.wh), file=DBG_FILE)
         print('shapeKey={}'.format(self.shapeKey), file=DBG_FILE)
@@ -190,11 +194,32 @@ class TestGui(object):
         self.cells[r][c].color = self.ALIVE
         if dbg: print(':END: addCell() c={} r={} data[r][c]={}\n'.format(c, r, self.data[r][c]), file=DBG_FILE)
 
+    def undo(self, reason=''):
+        print('undo(BGN) gen={} done[{}] undone[{}] steps={}'.format(self.gen, len(self.done), len(self.undone), self.steps), file=DBG_FILE)
+        if len(self.done) > 0:
+            self.gen -= 1
+            self.data = self.done.pop(-1)
+            self.undone.append(self.data)
+            for r in range(self.wr):
+                for c in range(self.wc):
+                    if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD[(r+c)%2]
+                    else:                    self.cells[r][c].color = self.ALIVE
+        self.updateStats()
+        self.printData(self.data, 'undo()')
+        print('undo(END) gen={} done[{}] undone[{}] steps={}'.format(self.gen, len(self.done), len(self.undone), self.steps), file=DBG_FILE)
+
     def update(self, dbg=1):
+        if dbg: print('update(BGN) gen={} done[{}] undone[{}] steps={}'.format(self.gen, len(self.done), len(self.undone), self.steps), file=DBG_FILE)
+        self.gen += 1
         self.done.append(self.data)
         self.updateDataCells()
+        if dbg: print('update() gen={} done=[{}] steps={}'.format(self.gen, len(self.done), self.steps), file=DBG_FILE)
+        if self.gen == self.steps:
+            self.stop(reason='gen={} steps={}'.format(self.gen, self.steps))
+            self.steps = 0
         self.updateStats()
         self.printData(self.data, 'update()')
+        if dbg: print('update(END) gen={} done[{}] undone[{}] steps={}'.format(self.gen, len(self.done), len(self.undone), self.steps), file=DBG_FILE)
 
     def updateDataCells(self, dbg=1):
         data = copy.deepcopy(self.data)
@@ -213,6 +238,20 @@ class TestGui(object):
             else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c)%2]; self.pop -= 1
         elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE;         self.pop += 1
         else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c)%2]
+
+    def updateStats(self, dbg=1):
+        if dbg: print('updateStats() gen={} pop={} c={} r={} len(cells[0])={} len(cells)={}'.format(self.gen, self.pop, self.wc, self.wr, len(self.cells[0]), len(self.cells)), file=DBG_FILE)
+        assert self.gen >= 0
+        assert self.pop >= 0
+        assert self.wr == len(self.cells)
+        assert self.wc == len(self.cells[0])
+        self.stats['S_GEN'] = self.gen
+        self.stats['S_POP'] = self.pop
+        self.stats['S_AREA'] = self.wr * self.wc
+        self.stats['S_DENS'] = 100 * self.stats['S_POP'] / self.stats['S_AREA']
+        if self.pop > 0: self.stats['S_IDENS'] = int(self.stats['S_AREA'] / self.stats['S_POP'])
+        else:            self.stats['S_IDENS'] = -1
+        self.displayStats()
 
     def removeCell(self, c, r, dbg=0):
         if dbg: print('\n:BGN: removeCell() c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
@@ -244,18 +283,6 @@ class TestGui(object):
         for r in range(self.wr):
             for c in range(self.wc):
                 if self.data[r][c] == 1: self.pop += 1
-
-    def undo(self, pc=1): #pc=?
-        print('\n:BGN: undo() done[{}] undone[{}]\n'.format(len(self.done), len(self.undone)), file=DBG_FILE)
-        if len(self.done) > 0:
-            self.data = self.done.pop(-1)
-            self.undone.append(self.data)
-            for r in range(self.wr):
-                for c in range(self.wc):
-                    cells[r][c].color = self.DEAD[(r+c)%2]
-        self.updateStats()
-        self.printData(self.data, 'undo()')
-        print(':END: undo() done[{}] undone[{}]\n'.format(len(self.done), len(self.undone)), file=DBG_FILE)
 
     def parse(self, dbg=0):
         print('\n:BGN: parse()', file=DBG_FILE)
@@ -320,19 +347,6 @@ class TestGui(object):
         n -= self.data[r][c]
         return n
 
-    def updateStats(self):
-#        print('updateStats() pop={} c={} r={} len(cells[0])={} len(cells)={}'.format(self.pop, self.wc, self.wr, len(self.cells[0]), len(self.cells)), file=DBG_FILE)
-        assert self.pop >= 0
-        assert self.wr == len(self.cells)
-        assert self.wc == len(self.cells[0])
-        self.stats['S_POP'] = self.pop
-        self.stats['S_GEN'] = len(self.done)# - 1
-        self.stats['S_AREA'] = self.wr * self.wc
-        self.stats['S_DENS'] = 100 * self.stats['S_POP'] / self.stats['S_AREA']
-        if self.pop > 0: self.stats['S_IDENS'] = int(self.stats['S_AREA'] / self.stats['S_POP'])
-        else:            self.stats['S_IDENS'] = -1
-        self.displayStats()
-
     def displayStats(self, dbg=0):
 #        txt = 'Gen={} Pop={} Area={:,} [{}x{}] Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.wc, self.wr, self.stats['S_DENS'], self.stats['S_IDENS'])
         txt = 'Gen={} Pop={} Area={:,} done={} undone={} Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], len(self.done), len(self.undone), self.stats['S_DENS'], self.stats['S_IDENS'])
@@ -366,6 +380,9 @@ class TestGui(object):
             print(file=DBG_FILE)
         print(':END: printData({}) data[{}x{}={:,}]\n'.format(reason, rows, cols, area), file=DBG_FILE)
 
+    def flush(self):
+        print('flush()', file=DBG_FILE, flush=True)
+
     def toggleWrapEdges(self):
         print('\n:BGN toggleWrapEdges() {}'.format(self.getNNCount), file=DBG_FILE)
         if self.getNNCount == self.getNNCountHard: self.getNNCount = self.getNNCountWrap
@@ -382,24 +399,58 @@ class TestGui(object):
         else: self.removeCell(c, r)
         self.updateStats()
 
+#    def toggleColorList():
+#        if self.colorList: self.colorList = 0
+#            else:          self.colorList = 1
+
 ####################################################################################################
-    def run(self):
+    def run(self, reason=''):
+        print('run() reason={}'.format(reason), flush=True)
+        print('run() reason={}'.format(reason), file=DBG_FILE, flush=True)
         pyglet.clock.schedule_interval(self.update, 1/120.0)
 
-    def stop(self):
-        pyglet.clock.unschedule(self.update)
-####################################################################################################
+    def gotog(self, dbg=1): #timeTravel() jump() skip()?
+        if dbg: print('gotog(BGN) steps={} buffer={}'.format(self.steps, self.buffer), file=DBG_FILE, flush=True)
+        self.steps = int(self.buffer)
+        self.run(reason='gotog() gen={} steps={} buffer={}'.format(self.gen, self.steps, self.buffer))
+        self.buffer = None
+        if dbg: print('gotog(END) steps={} buffer={}'.format(self.steps, self.buffer), file=DBG_FILE, flush=True)
 
+    def stop(self, reason=''):
+        print('stop() reason={} dispatch={}'.format(reason, self.dispatch))
+        self.dispatch = None
+        pyglet.clock.unschedule(self.update)
+
+    def register(self, func):
+        print('register(BGN) buffer={} dispatch={}'.format(self.buffer, self.dispatch), file=DBG_FILE)
+        self.buffer = None
+        self.dispatch = func
+        print('register(END) buffer={} dispatch={}'.format(self.buffer, self.dispatch), file=DBG_FILE)
+####################################################################################################
     def on_key_press(self, symbol, modifiers):
-#        if symbol < 256: print('on_key_press() symbol={}({}) modifiers={}'.format(symbol, chr(symbol), modifiers), flush=True)
-#        else: print('on_key_press() symbol={} modifiers={}'.format(symbol, modifiers), flush=True)
-        if   symbol == key.Q and modifiers == key.MOD_CTRL:  exit()
+        symStr, modstr = key.symbol_string(symbol), key.modifiers_string(modifiers)
+        print('on_key_press(a) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modstr, self.dispatch), flush=True)
+        print('on_key_press(a) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modstr, self.dispatch), file=DBG_FILE, flush=True)
+        if self.dispatch:
+            print('on_key_press(b) chr(symbol)={} buffer={}'.format(chr(symbol), self.buffer), flush=True)
+            print('on_key_press(b) chr(symbol)={} buffer={}'.format(chr(symbol), self.buffer), file=DBG_FILE, flush=True)
+            if symbol == key.SPACE or symbol == key.ENTER:
+                self.dispatch()
+                self.dispatch = None
+            else: 
+                if self.buffer is None: self.buffer = ''
+                self.buffer += (chr(symbol))
+                print('on_key_press(c) chr(symbol)={} buffer={}'.format(chr(symbol), self.buffer), flush=True)
+                print('on_key_press(c) chr(symbol)={} buffer={}'.format(chr(symbol), self.buffer), file=DBG_FILE, flush=True)
+        elif symbol == key.Q and modifiers == key.MOD_CTRL:  exit()
         elif symbol == key.A and modifiers == key.MOD_CTRL:  self.addShape(self.shapeKey)
         elif symbol == key.E and modifiers == key.MOD_CTRL:  self.clear()
         elif symbol == key.F and modifiers == key.MOD_CTRL:  self.toggleFullScreen()
+        elif symbol == key.G and modifiers == key.MOD_CTRL:  self.register(self.gotog)
         elif symbol == key.R and modifiers == key.MOD_CTRL:  self.recallShape()
         elif symbol == key.S and modifiers == key.MOD_CTRL:  self.saveShape()
-        elif symbol == key.N and modifiers == key.MOD_SHIFT: self.toggleWrapEdges()
+        elif symbol == key.N and modifiers == key.MOD_CTRL:  self.toggleWrapEdges()
+        elif symbol == key.F and modifiers == key.MOD_SHIFT: self.flush()
         elif symbol == key.SPACE:                            self.stop()
         elif symbol == key.ENTER:                            self.run()
         elif symbol == key.RIGHT:                            self.update()
