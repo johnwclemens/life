@@ -15,9 +15,10 @@ def fri(f): return int(round(f))
 #for screen in screens:
 #    windows.append(pyglet.window.Window(screen=screen))
 
-class Life(pyglet.window.Window):
-    def __init__(self):
-        super(Life, self).__init__(width=700, height=400, resizable=True)
+window = pyglet.window.Window(resizable=True)
+
+class LifeA(object):
+    def __init__(self, window):
         self.MIN, self.NOM, self.MAX = 0, 1, 2
         self.ALIVE  =  (127, 255, 127)
         self.ALIVE2 =  (191, 255, 127)
@@ -77,7 +78,8 @@ class Life(pyglet.window.Window):
 #        self.addGrid(c=20, r=12) # even even
 #        self.addGrid(c=20, r=11) # even odd
 #        self.addGrid(c=13, r=10) # odd even
-        self.set_visible()
+        self.window = window
+        self.window.set_visible()
         self.parse()
         self.addShape(self.wc//2, self.wr//2, self.shapeKey)
         self.printData(self.data, 'addShape()')
@@ -119,7 +121,6 @@ class Life(pyglet.window.Window):
         if dbg: print('addGrid(END) w={:6.2f} h={:6.2f} c={} r={} ww={} wh={} x={:6.2f} y={:6.2f}'.format(self.cw, self.ch, self.wc, self.wr, self.ww, self.wh, x, y), file=DBG_FILE)
 
     def on_resize(self, width, height, dbg=1):
-        super().on_resize(width, height)
         ww = self.ww = width
         wh = self.wh = height
         m, n = 0, 0 #1, 1
@@ -349,7 +350,7 @@ class Life(pyglet.window.Window):
     def displayStats(self, dbg=0):
 #        txt = 'Gen={} Pop={} Area={:,} [{}x{}] Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.wc, self.wr, self.stats['S_DENS'], self.stats['S_IDENS'])
         txt = 'Gen={} Pop={} Area={:,} done={} undone={} Dens={:6.3}% Idens={:,}'.format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], len(self.done), len(self.undone), self.stats['S_DENS'], self.stats['S_IDENS'])
-        self.set_caption(txt)
+        self.window.set_caption(txt)
         if dbg: print('{}'.format(txt), file=DBG_FILE)
 
     def printShapes(self):
@@ -405,7 +406,7 @@ class Life(pyglet.window.Window):
     def toggleFullScreen(self):
         if   self.fullScreen == True: self.fullScreen = False
         else:                         self.fullScreen = True
-        self.set_fullscreen(self.fullScreen)
+        self.window.set_fullscreen(self.fullScreen)
 
     def toggleCell(self, c, r):
         if self.data[r][c] == 0: self.addCell(c, r)
@@ -441,7 +442,6 @@ class Life(pyglet.window.Window):
         print('register(END) buffer={} dispatch={}'.format(self.buffer, self.dispatch), file=DBG_FILE)
 ####################################################################################################
     def on_key_press(self, symbol, modifiers):
-        super().on_key_press(symbol, modifiers)
         symStr, modstr = key.symbol_string(symbol), key.modifiers_string(modifiers)
         print('on_key_press(a) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modstr, self.dispatch), flush=True)
         print('on_key_press(a) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modstr, self.dispatch), file=DBG_FILE, flush=True)
@@ -477,10 +477,26 @@ class Life(pyglet.window.Window):
         self.toggleCell(c, r)
 
     def on_draw(self):
-        super().clear()
+        self.window.clear()
         self.batch.draw()
+
+@window.event
+def on_draw():
+    life.on_draw()
+
+@window.event
+def on_resize(width, height):
+    life.on_resize(width, height)
+
+@window.event
+def on_key_press(symbol, modifiers):
+    life.on_key_press(symbol, modifiers)
+
+@window.event
+def on_mouse_release(x, y, button, modifiers):
+    life.on_mouse_release(x, y, button, modifiers)
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log", 'w')
-    life = Life()
+    life = LifeA(window)
     pyglet.app.run()

@@ -5,35 +5,26 @@ from pyglet import shapes
 from pyglet.window import event
 from pyglet.window import key
 
-window = pyglet.window.Window(width=700, height=400, resizable=True)
-
-class TestGui(object):
-    def __init__(self, window):
+class TestGuiC(pyglet.window.Window):
+    def __init__(self):
+        super(TestGuiC, self).__init__(width=700, height=400, resizable=True)
         self.ALIVE  = (127, 255, 127)
         self.batch = pyglet.graphics.Batch()
-        self.r = shapes.Rectangle(window.width/4, window.height/4, window.width/2, window.height/2, color=self.ALIVE, batch=self.batch)
-        self.window = window
-        self.window.set_visible()
+        self.r = shapes.Rectangle(self.width/4, self.height/4, self.width/2, self.height/2, color=self.ALIVE, batch=self.batch)
+        self.set_visible()
 
     def on_resize(self, width, height):
+        super().on_resize(width, height)
         self.r.position = (width/4, height/4)
         self.r.width    = width/2
         self.r.height   = height/2
 
     def on_draw(self):
-        self.window.clear()
+        self.clear()
         self.batch.draw()
-
-@window.event
-def on_resize(width, height):
-    life.on_resize(width, height)
-
-@window.event
-def on_draw():
-    life.on_draw()
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log", 'w')
-    life = TestGui(window)
+    window = TestGuiC()
     pyglet.app.run()
     

@@ -7,7 +7,7 @@ from pyglet.window import key
 
 window = pyglet.window.Window(width=700, height=400, resizable=True)
 
-class TestGui(object):
+class TestGuiA(object):
     def __init__(self, window):
         self.ALIVE  = (127, 255, 127)
         self.batch = pyglet.graphics.Batch()
@@ -34,6 +34,6 @@ def on_draw():
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log", 'w')
-    life = TestGui(window)
+    life = TestGuiA(window)
     pyglet.app.run()
     
