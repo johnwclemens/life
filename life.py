@@ -12,7 +12,6 @@ class Life(pyglet.window.Window):
         self.screens = display.get_screens()
 #        self.auxWin = pyglet.window.Window(width=900, height=500, resizable=True, screen=self.screens[0], visible=False)
 #        self.auxWin.set_visible()
-#        super(Life, self).__init__(width=700, height=400, resizable=True)
         super().__init__(resizable=True, screen=self.screens[1], visible=False)
         self.MIN, self.NOM, self.MAX = 0, 1, 2
         self.ALIVE  =  (127, 255, 127)
