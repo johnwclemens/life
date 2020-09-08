@@ -146,7 +146,6 @@ class Life(pyglet.window.Window):
         if dbg: print('on_resize(END) width={} height={} ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f}'.format(width, height, self.ww, self.wh, self.wc, self.wr, self.cw, self.ch), file=DBG_FILE)
 
     def addShape(self, c, r, key='MyShape_1'):
-#        self.done.append(self.data)
         v = self.shapes[key]
         data = v[0]
         w, h = len(data[0]), len(data)
