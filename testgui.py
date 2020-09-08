@@ -5,7 +5,12 @@ from pyglet import shapes
 from pyglet.window import event
 from pyglet.window import key
 
-window = pyglet.window.Window(width=700, height=400, resizable=True)
+#window = pyglet.window.Window(width=700, height=400, resizable=True)
+display = pyglet.canvas.get_display()
+screens = display.get_screens()
+windows = []
+for screen in screens:
+    windows.append(pyglet.window.Window(width=700, height=400, resizable=True, screen=screen, visible=False))
 
 class TestGui(object):
     def __init__(self, window):
@@ -24,16 +29,16 @@ class TestGui(object):
         self.window.clear()
         self.batch.draw()
 
-@window.event
+@pyglet.window.Window.event
 def on_resize(width, height):
     life.on_resize(width, height)
 
-@window.event
+@pyglet.window.Window.event
 def on_draw():
     life.on_draw()
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log", 'w')
-    life = TestGui(window)
+    life = TestGui(windows[0])
     pyglet.app.run()
     

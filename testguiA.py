@@ -5,7 +5,7 @@ from pyglet import shapes
 from pyglet.window import event
 from pyglet.window import key
 
-window = pyglet.window.Window(width=700, height=400, resizable=True)
+window = pyglet.window.Window(width=700, height=400, resizable=True, visible=False)
 
 class TestGuiA(object):
     def __init__(self, window):
