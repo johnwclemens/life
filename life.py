@@ -30,12 +30,14 @@ class Life(pygwin.Window):
         self.done,        self.undone    =  [],  []
         self.shapes,      self.stats     =  {},  {}
         self.x,           self.y         =  0,   0
-        self.colors,      self.dirty     =  1,   False
+#        self.ncolors    = 1
+        self.foo        = False  # self.bar       = False, False
+        self.gridLines,   self.dirty     = True, False
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         = 221  # 221  # 11#101
-        self.wr         = 121  # 121  # 7#57
-        self.ww         = 1900  # 1900  # 950
-        self.wh         = 1100  # 590
+        self.wc         = 17  # 51  # 221  # 11#101
+        self.wr         =  9  # 31  # 121  # 7#57
+        self.ww         = 1000  # 1900  # 950
+        self.wh         = 600   # 1100  # 590
         self.cw         = self.ww / self.wc
         self.ch         = self.wh / self.wr
         self.fullScreen = False
@@ -86,13 +88,15 @@ class Life(pygwin.Window):
         mesh, color = [1, 10, 50], self.DEAD[0]
         w = self.cw = self.ww / self.wc
         h = self.ch = self.wh / self.wr
-        x, y = self.x, self.y
+        x, y, bar = self.x, self.y, False
         print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
         for j in range(r):
             tmp1, tmp2 = [], []
             for i in range(c):
                 tmp1.append(0)
-                color = self.DEAD[(i+j) % self.colors]
+#                color = self.DEAD[(i+j) % self.ncolors]
+                if self.foo: bar = not bar
+                color = self.DEAD[bar]
                 s = (pyglet.shapes.Rectangle(fri(i*w+x), fri(j*h+y), fri(w), fri(h), color=color, batch=self.batch))
                 s.opacity = 255
                 tmp2.append(s)
@@ -201,11 +205,15 @@ class Life(pygwin.Window):
         print('addShape(END) {}'.format(txt), file=DBG_FILE)
 
     def addShapeA(self, c, r, dbg=1):  # checkerboard
+        bar = False
         if dbg: print('addShapeA(BGN) c={} r={}'.format(c, r), file=DBG_FILE)
         for j in range(len(self.cells)):
             for i in range(len(self.cells[j])):
-                if (i+j) % 2: self.cells[j][i].color = self.DEAD[(i+j) % self.colors]
-                else:         self.addCell(i, j)
+#                if (i+j) % 2: self.cells[j][i].color = self.DEAD[(i+j) % self.ncolors]
+#                else:         self.addCell(i, j)
+                if self.foo: bar = not bar
+                if bar: self.addCell(i, j)
+                else:   self.cells[j][i].color = self.DEAD[bar]
         if dbg: self.printData(self.data, 'addShapeA() c={} r={}'.format(c, r))
         if dbg: print('addShapeA(END) c={} r={}'.format(c, r), file=DBG_FILE)
 
@@ -226,33 +234,29 @@ class Life(pygwin.Window):
         self.cells[r][c].color = self.ALIVE[0]
         if dbg: print(  'addCell(END) c={} r={} data[r][c]={} pop={}'.format(c, r, self.data[r][c], self.pop), file=DBG_FILE)
 
-    def refreshCells(self):
-        print('refreshCells(BGN) colors={}'.format(self.colors), file=DBG_FILE)
-        for j in range(self.wr):
-            for i in range(self.wc):
-                if self.data[j][i] == 0:
-                    self.cells[j][i].color = self.DEAD[(i+j) % self.colors]
-                else:
-                    self.cells[j][i].color = self.ALIVE[0]
-        print('refreshCells(END) colors={}'.format(self.colors), file=DBG_FILE)
-
     def updateDataCells(self):
+        bar = False
         data = copy.deepcopy(self.data)
         for r in range(self.wr-1, -1, -1):
             for c in range(self.wc):
-                self.updateDataCell(c, r, data)
+                if self.foo: bar = not bar
+                self.updateDataCell(c, r, data, self.DEAD[bar])
         self.data = data
 
-    def updateDataCell(self, c, r, data, dbg=0):
+    def updateDataCell(self, c, r, data, color, dbg=0):
         n = self.getNNCount(c, r)
         if dbg:
             if n == 0: print(' ', file=DBG_FILE, end='')
             else: print('{}'.format(n), file=DBG_FILE, end='')
         if self.data[r][c] == 1:
             if n == 2 or n == 3: data[r][c] = 1; self.cells[r][c].color = self.ALIVE[0]
-            else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.colors]; self.pop -= 1
-        elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE[0];                  self.pop += 1
-        else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.colors]
+#            else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]; self.pop -= 1
+#            else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD[self.bar]; self.pop -= 1
+            else:                data[r][c] = 0; self.cells[r][c].color = color;         self.pop -= 1
+        elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE[0]; self.pop += 1
+        else:                    data[r][c] = 0; self.cells[r][c].color = color
+#        else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD[self.bar]
+#        else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
 
     def updateStats(self):
         assert self.gen >= 0
@@ -270,30 +274,34 @@ class Life(pygwin.Window):
         else:                        self.stats['S_IFPS'] = -1.0
         self.displayStats()
 
-    def removeCell(self, c, r, dbg=0):
+    def removeCell(self, c, r, color, dbg=0):
         if dbg: print('removeCell(BGN) c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
         if self.data[r][c] == 1: self.pop -= 1
         self.data[r][c] = 0
-        self.cells[r][c].color = self.DEAD[(r+c) % self.colors]
+#        self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
+        self.cells[r][c].color = color  # self.bar]
         if dbg: print('removeCell(END) c={} r={} data[r][c]={}'.format(c, r, self.data[r][c]), file=DBG_FILE)
 
     def saveShape(self):
-        print('saveShape(BGN)', file=DBG_FILE)
+        print('saveShape(BGN) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
         self.savedData = copy.deepcopy(self.data)
         self.savedDone = copy.deepcopy(self.done)
-        print('saveShape(END)', file=DBG_FILE)
+        print('saveShape(END) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
 
     def recallShape(self):
-        print('recallShape(BGN) current pop={}'.format(self.pop), file=DBG_FILE)
+        print('recallShape(BGN) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
         self.calcPop()
         self.done = copy.deepcopy(self.savedDone)
+        self.gen = len(self.done)
+        bar = False
         for r in range(len(self.savedData)):
             for c in range(len(self.savedData[0])):
+                if self.foo: bar = not bar
                 if self.savedData[r][c] == 1: self.addCell(c, r)
-                else:                         self.removeCell(c, r)
+                else:                         self.removeCell(c, r, self.DEAD[bar])
         self.printData(self.data, 'recallShape()')
         self.updateStats()
-        print('recallShape(END) recalled pop={}'.format(self.pop), file=DBG_FILE)
+        print('recallShape(END) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
 
     def calcPop(self, dbg=0):
         if dbg: print('calcPop(BGN) pop={}'.format(self.pop), file=DBG_FILE)
@@ -405,22 +413,24 @@ class Life(pygwin.Window):
         print('flush()', file=DBG_FILE, flush=True)
 
     def erase(self):
-        print('erase(BGN)'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
+        print('erase(BGN) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
         self.gen   = self.pop    = 0
         self.done  = self.undone = []
-        self.stats = {}
+        self.stats, bar = {}, False
         for r in range(self.wr):
             for c in range(self.wc):
                 self.data[r][c] = 0
-                self.cells[r][c].color = self.DEAD[(r+c) % self.colors]
+#                self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
+                if self.foo: bar = not bar
+                self.cells[r][c].color = self.DEAD[bar]
         self.updateStats()
-        print('erase(END)'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
+        print('erase(END) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
 
     def reset(self):
-        print('reset(BGN)'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
+        print('reset(BGN) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
         self.erase()
         self.addShape(self.wc//2, self.wr//2, self.shapeKey)
-        print('reset(END)'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
+        print('reset(END) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
 
     def toggleWrapEdges(self):
         print('toggleWrapEdges(BGN) {}'.format(self.getNNCount), file=DBG_FILE)
@@ -435,50 +445,84 @@ class Life(pygwin.Window):
 
     def toggleCell(self, c, r):
         if self.data[r][c] == 0: self.addCell(c, r)
-        else: self.removeCell(c, r)
+        else: self.removeCell(c, r)  # color=?
         self.updateStats()
         self.dirty = True
 
-    def toggleColors(self):
-        print('toggleColors(BGN) colors={}'.format(self.colors), file=DBG_FILE)
-        if self.colors == 2: self.colors = 1
-        else:                self.colors = 2
+#    def toggleColors(self):
+#        print('toggleColors(BGN) ncolors={}'.format(self.ncolors), file=DBG_FILE)
+#        if self.ncolors == 2: self.ncolors = 1
+#        else:                 self.ncolors = 2
+#        self.refreshCells()
+#        print('toggleColors(END) ncolors={}'.format(self.ncolors), file=DBG_FILE)
+
+    def toggleFoo(self):
+        print('toggleFoo(BGN) foo={}'.format(self.foo), file=DBG_FILE)
+        self.foo = not self.foo
         self.refreshCells()
-        print('toggleColors(END) colors={}'.format(self.colors), file=DBG_FILE)
+        print('toggleFoo(END) foo={}'.format(self.foo), file=DBG_FILE)
+
+    def toggleGridLines(self):
+        print('toggleGridLines(BGN) gridLines={}'.format(self.gridLines), file=DBG_FILE)
+        self.gridLines = not self.gridLines
+        for i in range(len(self.clines)):
+            self.clines[i].visible = self.gridLines
+        for j in range(len(self.rlines)):
+            self.rlines[j].visible = self.gridLines
+        print('toggleGridLines(END) gridLines={}'.format(self.gridLines), file=DBG_FILE)
 
 ####################################################################################################
+    def refreshCells(self):
+#        print('refreshCells(BGN) colors={}'.format(self.ncolors), file=DBG_FILE)
+        print('refreshCells(BGN) foo={}'.format(self.foo), file=DBG_FILE)
+        bar = False
+        for j in range(self.wr):
+            for i in range(self.wc):
+                if self.foo: bar = not bar
+                if self.data[j][i] == 0:
+#                    self.cells[j][i].color = self.DEAD[(i+j) % self.ncolors]
+                    self.cells[j][i].color = self.DEAD[bar]
+                else:
+                    self.cells[j][i].color = self.ALIVE[0]
+        print('refreshCells(END) foo={}'.format(self.foo), file=DBG_FILE)
+#        print('refreshCells(END) colors={}'.format(self.ncolors), file=DBG_FILE)
+
     def undo(self, dt=-1.0, reason=''):
         if self.dirty: self.printData(self.data, 'dirty undo()'); self.dirty = False
-        print('undo(BGN) gen={} genX={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
-        if len(self.done) > 0:
+        print('undo(BGN) gen={} genX={} pop={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
+        if self.gen > 0 and len(self.done) > 0:
+            bar = False
             self.gen -= 1
             self.data = self.done.pop(-1)
             self.undone.append(self.data)
             for r in range(self.wr):
                 for c in range(self.wc):
-                    if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD[(r+c) % self.colors]
+#                    if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
+                    if self.foo: bar = not bar
+                    if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD[bar]
                     else:                    self.cells[r][c].color = self.ALIVE[0]
-        self.calcPop()
-        if self.gen == self.genX:
-            self.stop(self.undo, reason=reason)
-            self.genX = -1
-        self.updateStats()
-        self.printData(self.data, 'undo()')
-        print('undo(END) gen={} genX={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
+            self.calcPop()
+            if self.gen == self.genX:
+                self.stop(self.undo, reason=reason)
+                self.genX = -1
+            self.updateStats()
+            self.printData(self.data, 'undo()')
+        else: print('undo() Nothing to Undo done[{}]'.format(len(self.done)), file=DBG_FILE)
+        print('undo(END) gen={} genX={} pop={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
 
     def update(self, dt=-1.0, reason=''):
         if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
-        print('update(BGN) gen={} genX={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
+        print('update(BGN) gen={} genX={} pop={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
         self.gen += 1
         self.done.append(self.data)
         self.updateDataCells()
-        print('update() gen={} genX={} done=[{}]'.format(self.gen, self.genX, len(self.done)), file=DBG_FILE)
+        print('update() gen={} genX={} pop={} done=[{}] undone[{}]'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
         if self.gen == self.genX:
             self.stop(self.update, reason=reason)
             self.genX = -1
         self.updateStats()
         self.printData(self.data, 'update()')
-        print('update(END) gen={} genX={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
+        print('update(END) gen={} genX={} pop={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
 
     @staticmethod
     def stop(func, reason):
@@ -535,8 +579,9 @@ class Life(pygwin.Window):
                 if dbg: print('on_key_press() a(symbol)={!a} buffer={}'.format(symbol, self.buffer), flush=True)
                 if dbg: print('on_key_press() a(symbol)={!a} buffer={}'.format(symbol, self.buffer), file=DBG_FILE, flush=True)
         elif symbol == pygwink.Q and modifiers == pygwink.MOD_CTRL:  exit()
-        elif symbol == pygwink.A and modifiers == pygwink.MOD_CTRL:  self.addShape(self.wc, self.wr, self.shapeKey)
-        elif symbol == pygwink.C and modifiers == pygwink.MOD_CTRL:  self.toggleColors()
+        elif symbol == pygwink.A and modifiers == pygwink.MOD_CTRL:  self.addShape(self.wc//2, self.wr//2, self.shapeKey)
+#        elif symbol == pygwink.C and modifiers == pygwink.MOD_CTRL:  self.toggleColors()
+        elif symbol == pygwink.C and modifiers == pygwink.MOD_CTRL:  self.toggleFoo()
         elif symbol == pygwink.E and modifiers == pygwink.MOD_CTRL:  self.erase()
         elif symbol == pygwink.F and modifiers == pygwink.MOD_CTRL:  self.toggleFullScreen()
         elif symbol == pygwink.G and modifiers == pygwink.MOD_CTRL:  self.register(self.absGenX)
@@ -545,6 +590,7 @@ class Life(pygwin.Window):
         elif symbol == pygwink.S and modifiers == pygwink.MOD_CTRL:  self.saveShape()
         elif symbol == pygwink.N and modifiers == pygwink.MOD_CTRL:  self.toggleWrapEdges()
         elif symbol == pygwink.F and modifiers == pygwink.MOD_SHIFT: self.flush()
+        elif symbol == pygwink.G and modifiers == pygwink.MOD_SHIFT: self.toggleGridLines()
         elif symbol == pygwink.R and modifiers == pygwink.MOD_SHIFT: self.reset()
         elif symbol == pygwink.SPACE:                                self.stop(self.update, 'on_key_press(SPACE)')  # ; self.stop(self.undo, 'on_key_press(SPACE)')
         elif symbol == pygwink.ENTER:                                self.run(self.update, self.period, reason='on_key_press(ENTER)')
