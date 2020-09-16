@@ -34,15 +34,15 @@ class Life(pygwin.Window):
         self.x,           self.y         =  0,   0
         self.gridLines,   self.dirty     = True, False
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         = 20  # 51  # 221  # 11#101
-        self.wr         = 10  # 31  # 121  # 7#57
+        self.wc         = 100  # 51  # 221  # 11#101
+        self.wr         =  50  # 31  # 121  # 7#57
         self.ww         = 1000  # 1900  # 950
         self.wh         = 600   # 1100  # 590
         self.cw         = self.ww / self.wc
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'TestEvenOdd'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'TestOddEven'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -325,6 +325,10 @@ class Life(pygwin.Window):
                         if dbg: print('info2={}'.format(info2), file=DBG_FILE)
                     elif dataSet <= self.DATA_SET:
                         line = line.translate(self.XLATE)
+#                        tmp = []
+#                        for c in line:
+#                            tmp.append(int(c))
+#                        data.insert(0, tmp)
                         data.insert(0, [int(c) for c in line])
                         state = 2
                         if dbg: print('    {}'.format(line), file=DBG_FILE)
@@ -439,10 +443,8 @@ class Life(pygwin.Window):
     def toggleGridLines(self):
         print('toggleGridLines(BGN) gridLines={}'.format(self.gridLines), file=DBG_FILE)
         self.gridLines = not self.gridLines
-        for i in range(len(self.clines)):
-            self.clines[i].visible = self.gridLines
-        for j in range(len(self.rlines)):
-            self.rlines[j].visible = self.gridLines
+        for i in range(len(self.clines)): self.clines[i].visible = self.gridLines
+        for j in range(len(self.rlines)): self.rlines[j].visible = self.gridLines
         print('toggleGridLines(END) gridLines={}'.format(self.gridLines), file=DBG_FILE)
 
 ####################################################################################################

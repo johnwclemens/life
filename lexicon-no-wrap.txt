@@ -167,26 +167,28 @@ on 26 February 1999.
         ..*.......*..
 
 :TestOddOdd:  Shape with odd number of rows and odd number of columns.
-        .*.
+        *.*
         ***
-        ..*
+        ***
 
 :TestOddEven:  Shape with odd number of rows and even number of columns.
-        **..
-        *.**
-        ..*.
+        **..**
+        **..**
+        **..**
+        ******
+        ******
 
 :TestEvenOdd:  Shape with even number of rows and odd number of columns.
-        .**
-        **.
         *.*
-        ..*
+        *.*
+        ***
+        ***
         
 :TestEvenEven:  Shape with even number of rows and even number of columns.
         *..**..*
-        .*.*.*.*
-        *.*.*.*.
-        .*.*.*.*
+        *..**..*
+        ********
+        ********
 
 :1-2-3: (p3)  Found by Dave Buckingham, August 1972. This is one of only three essentially different p3 {oscillator}s with only three cells in the {rotor}.  The others are {stillater} and {cuphook}.
         ..**......
