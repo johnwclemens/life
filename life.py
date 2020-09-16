@@ -15,12 +15,13 @@ class Life(pygwin.Window):
 #        self.auxWin = pygwin.Window(width=900, height=500, resizable=True, screen=self.screens[0], visible=False)
 #        self.auxWin.set_visible()
         super().__init__(resizable=True, screen=self.screens[1], visible=False)
-        self.MIN, self.NOM, self.MAX = 0, 1, 2
-        self.ALIVE      = [(127, 255, 127), (127, 255, 255)]
-        self.DEAD       = [(  0,   0,   0), (100,  80, 127)]
-        self.MESH       = [(127, 191, 255), (255,   0,   0), (255, 255, 255)]
         self.DATA_SET   = set('.*')
         self.XLATE      = str.maketrans('.*', '01')
+        self.MIN, self.NOM, self.MAX = 0, 1, 2
+        self.MESH       = [(127, 191, 255), (255,   0,   0), (255, 255, 255)]
+        self.ALIVE      = [(127, 255, 127), (127, 255, 255)]
+        self.DEAD       = [(  0,   0,   0), (100,  80, 127)]
+        self.ncolors    = 2
         self.batch      = pyglet.graphics.Batch()
         self.data,        self.cells,    =  [], []
         self.clines,      self.rlines    =  [], []
@@ -32,17 +33,16 @@ class Life(pygwin.Window):
         self.shapes,      self.stats     =  {},  {}
         self.x,           self.y         =  0,   0
         self.gridLines,   self.dirty     = True, False
-        self.ncolors    = 2
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         = 17  # 51  # 221  # 11#101
-        self.wr         =  9  # 31  # 121  # 7#57
+        self.wc         = 20  # 51  # 221  # 11#101
+        self.wr         = 10  # 31  # 121  # 7#57
         self.ww         = 1000  # 1900  # 950
         self.wh         = 600   # 1100  # 590
         self.cw         = self.ww / self.wc
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'TestEvenOdd'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -72,18 +72,15 @@ class Life(pygwin.Window):
         self.cw = self.ww / self.wc
         self.ch = self.wh / self.wr
         print('init(END) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={:6.3}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
-#        self.addGrid(self.wc, self.wr, self.ww, self.wh)
-        self.addGrid(21, 11, self.ww, self.wh)  # odd odd
-#        self.addGrid(20, 10, self.ww, self.wh)  # even even
-#        self.addGrid(c=20, r=11)  # even odd
-#        self.addGrid(c=13, r=10)  # odd even
-        self.set_visible()
         self.parse()
-#        self.addShape(self.wc//2, self.wr//2, self.shapeKey)
+        self.addGrid(self.wc, self.wr, self.ww, self.wh, self.shapeKey)
         self.addShape(self.wc/2, self.wr/2, self.shapeKey)
-#        self.addShape(fri(self.wc/2-1), fri(self.wr/2-1), self.shapeKey)
+        self.set_visible()
 
-    def addGrid(self, c, r, ww, wh, dbg=1):
+    def addGrid(self, c, r, ww, wh, sk, dbg=1):
+        d = self.shapes[sk][0]
+        c += len(d[0]) % 2
+        r += len(d   ) % 2
         self.wc, self.wr = c, r
         self.ww, self.wh = ww, wh
         mesh, color = [1, 5, 25], self.DEAD[0]
@@ -193,7 +190,7 @@ class Life(pygwin.Window):
         print('info1={}'.format(v[1]), file=DBG_FILE)
         if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
         if v[3]: print('info3={}'.format(v[3]), file=DBG_FILE)
-        if data is None: return  # print something?
+        if data is None: print('addShape data={} is None Nothing to Add'.format(data), file=DBG_FILE); return
         for j in range(h):
             print('    ', file=DBG_FILE, end='')
             for i in range(w):

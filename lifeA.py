@@ -8,7 +8,7 @@ import cmdArgs
 
 def fri(f): return int(math.floor(f+0.5))
 
-class LifeA(pygwin.Window):
+class Life(pygwin.Window):
     def __init__(self):
         display = pyglet.canvas.get_display()
         self.screens = display.get_screens()
@@ -42,7 +42,7 @@ class LifeA(pygwin.Window):
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'TestEvenEven'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -73,8 +73,8 @@ class LifeA(pygwin.Window):
         self.ch = self.wh / self.wr
         print('init(END) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={:6.3}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
 #        self.addGrid(self.wc, self.wr, self.ww, self.wh)
-#        self.addGrid(21, 11, self.ww, self.wh)  # odd odd
-        self.addGrid(20, 10, self.ww, self.wh)  # even even
+        self.addGrid(21, 11, self.ww, self.wh)  # odd odd
+#        self.addGrid(20, 10, self.ww, self.wh)  # even even
 #        self.addGrid(c=20, r=11)  # even odd
 #        self.addGrid(c=13, r=10)  # odd even
         self.set_visible()
@@ -199,8 +199,6 @@ class LifeA(pygwin.Window):
             for i in range(w):
                 print('{}'.format(data[j][i]), file=DBG_FILE, end='')
                 if data[j][i] == 1: self.addCell(i+c, j+r)
-#                if data[j][i] == 1: self.addCell(i+c, -(j+r)-1)
-#                if data[j][i] == 1: self.addCell(i+c, h-1-j+r)
             print(file=DBG_FILE)
         self.printData(self.data, 'addShape()')
         self.updateStats()
@@ -331,11 +329,6 @@ class LifeA(pygwin.Window):
                     elif dataSet <= self.DATA_SET:
                         line = line.translate(self.XLATE)
                         data.insert(0, [int(c) for c in line])
-#                        tmp = [int(c) for c in line]
-#                        data.append(tmp)
-#                        tmp = []
-#                        for c in line: tmp.append(int(c))  # list comprehension?
-#                        data.append(tmp)
                         state = 2
                         if dbg: print('    {}'.format(line), file=DBG_FILE)
                     elif state == 2:
@@ -585,5 +578,5 @@ class LifeA(pygwin.Window):
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log.txt", 'w')
-    life = LifeA()
+    life = Life()
     pyglet.app.run()
