@@ -22,7 +22,8 @@ class Life(pygwin.Window):
         self.DATA_SET   = set('.*')
         self.XLATE      = str.maketrans('.*', '01')
         self.batch      = pyglet.graphics.Batch()
-        self.data,        self.cells,      self.clines, self.rlines = [], [], [], []
+        self.data,        self.cells,    =  [], []
+        self.clines,      self.rlines    =  [], []
         self.savedData,   self.savedDone =  [],  []
         self.dispatch,    self.buffer    = None, ''
         self.genX,        self.period    = -1,   1/120
@@ -30,8 +31,8 @@ class Life(pygwin.Window):
         self.done,        self.undone    =  [],  []
         self.shapes,      self.stats     =  {},  {}
         self.x,           self.y         =  0,   0
-        self.ncolors    = 1
         self.gridLines,   self.dirty     = True, False
+        self.ncolors    = 2
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
         self.wc         = 17  # 51  # 221  # 11#101
         self.wr         =  9  # 31  # 121  # 7#57
@@ -41,7 +42,7 @@ class Life(pygwin.Window):
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -71,20 +72,21 @@ class Life(pygwin.Window):
         self.cw = self.ww / self.wc
         self.ch = self.wh / self.wr
         print('init(END) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={:6.3}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
-        self.addGrid(self.wc, self.wr, self.ww, self.wh)
-#        self.addGrid(c=37, r=19) # odd odd
-#        self.addGrid(c=20, r=12) # even even
-#        self.addGrid(c=20, r=11) # even odd
-#        self.addGrid(c=13, r=10) # odd even
+#        self.addGrid(self.wc, self.wr, self.ww, self.wh)
+        self.addGrid(21, 11, self.ww, self.wh)  # odd odd
+#        self.addGrid(20, 10, self.ww, self.wh)  # even even
+#        self.addGrid(c=20, r=11)  # even odd
+#        self.addGrid(c=13, r=10)  # odd even
         self.set_visible()
         self.parse()
-        self.addShape(self.wc//2, self.wr//2, self.shapeKey)
-#        self.addShapeA(self.wc//2, self.wr//2)
+#        self.addShape(self.wc//2, self.wr//2, self.shapeKey)
+        self.addShape(self.wc/2, self.wr/2, self.shapeKey)
+#        self.addShape(fri(self.wc/2-1), fri(self.wr/2-1), self.shapeKey)
 
     def addGrid(self, c, r, ww, wh, dbg=1):
         self.wc, self.wr = c, r
         self.ww, self.wh = ww, wh
-        mesh, color = [1, 10, 50], self.DEAD[0]
+        mesh, color = [1, 5, 25], self.DEAD[0]
         w = self.cw = self.ww / self.wc
         h = self.ch = self.wh / self.wr
         x, y = self.x, self.y
@@ -99,6 +101,7 @@ class Life(pygwin.Window):
                 tmp2.append(s)
             self.data.append(tmp1)
             self.cells.append(tmp2)
+        self.cells[0][0].color = (255, 127, 127)
         if c % 2 == 0:
             p = fri(c/2) % mesh[self.MAX]
             if dbg: print('addGrid() c={}=Even p={}'.format(c, p), file=DBG_FILE)
@@ -153,7 +156,7 @@ class Life(pygwin.Window):
                 self.rlines.append(pyglet.shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=color, batch=self.batch))
         print('addGrid(END) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
 
-    def on_resize(self, width, height, dbg=1):
+    def on_resize(self, width, height, dbg=0):
         super().on_resize(width, height)
         ww = self.ww = width
         wh = self.wh = height
@@ -172,20 +175,20 @@ class Life(pygwin.Window):
         for i in range(c+1):  # len(self.clines)):
             self.clines[i].position = (fri(i*w+x), fri(y), fri(i*w+x), fri(r*h+y))
             if dbg: print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, fri(i*w), i*w+x, fri(i*w+x)), file=DBG_FILE)
-        print(file=DBG_FILE)
+        if dbg: print(file=DBG_FILE)
         for j in range(r+1):  # len(self.rlines)):
             self.rlines[j].position = (fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y))
             if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
         if dbg: print('on_resize(END) width={} height={} ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f}'.format(width, height, self.ww, self.wh, self.wc, self.wr, self.cw, self.ch), file=DBG_FILE)
 
-    def addShape(self, c, r, key='MyShape_1'):
+    def addShape(self, p, q, key='MyShape_1'):
         v = self.shapes[key]
         data = v[0]
         w, h = len(data[0]), len(data)
-        cc = c - w//2
-        rr = r + h//2
+        c = fri(p-w/2)
+        r = fri(q-h/2)
         a = w * h
-        txt = 'wc={} wr={} c={} r={} cc={} rr={} [{}x{}={}]'.format(self.wc, self.wr, c, r, cc, rr, w, h, a)
+        txt = 'wc={} wr={} p={} q={} c={} r={} [{}x{}={}]'.format(self.wc, self.wr, p, q, c, r, w, h, a)
         print('addShape(BGN) {}'.format(txt), file=DBG_FILE)
         print('info1={}'.format(v[1]), file=DBG_FILE)
         if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
@@ -195,7 +198,7 @@ class Life(pygwin.Window):
             print('    ', file=DBG_FILE, end='')
             for i in range(w):
                 print('{}'.format(data[j][i]), file=DBG_FILE, end='')
-                if data[j][i] == 1: self.addCell(cc+i, rr-j)
+                if data[j][i] == 1: self.addCell(i+c, j+r)
             print(file=DBG_FILE)
         self.printData(self.data, 'addShape()')
         self.updateStats()
@@ -325,9 +328,7 @@ class Life(pygwin.Window):
                         if dbg: print('info2={}'.format(info2), file=DBG_FILE)
                     elif dataSet <= self.DATA_SET:
                         line = line.translate(self.XLATE)
-                        tmp = []
-                        for c in line: tmp.append(int(c))  # list comprehension?
-                        data.append(tmp)
+                        data.insert(0, [int(c) for c in line])
                         state = 2
                         if dbg: print('    {}'.format(line), file=DBG_FILE)
                     elif state == 2:
@@ -431,12 +432,12 @@ class Life(pygwin.Window):
         self.updateStats()
         self.dirty = True
 
-    def toggleColors(self):
-        print('toggleColors(BGN) ncolors={}'.format(self.ncolors), file=DBG_FILE)
+    def toggleNColors(self):
+        print('toggleNColors(BGN) ncolors={}'.format(self.ncolors), file=DBG_FILE)
         if self.ncolors == 2: self.ncolors = 1
         else:                 self.ncolors = 2
         self.refreshCells()
-        print('toggleColors(END) ncolors={}'.format(self.ncolors), file=DBG_FILE)
+        print('toggleNColors(END) ncolors={}'.format(self.ncolors), file=DBG_FILE)
 
     def toggleGridLines(self):
         print('toggleGridLines(BGN) gridLines={}'.format(self.gridLines), file=DBG_FILE)
@@ -479,6 +480,7 @@ class Life(pygwin.Window):
     def update(self, dt=-1.0, reason=''):
         if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
         print('update(BGN) gen={} genX={} pop={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
+        if self.pop == 0: print('update() pop={} Nothing left Alive'.format(self.pop), file=DBG_FILE); return
         self.gen += 1
         self.done.append(self.data)
         self.updateDataCells()
@@ -535,7 +537,7 @@ class Life(pygwin.Window):
         super().on_key_press(symbol, modifiers)
         symStr, modStr = pygwink.symbol_string(symbol), pygwink.modifiers_string(modifiers)
         if dbg: print('on_key_press(BGN) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modStr, self.dispatch), flush=True)
-        if dbg: print('on_key_press(BGN) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modStr, self.dispatch), file=DBG_FILE, flush=True)
+        if dbg: print('\non_key_press(BGN) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modStr, self.dispatch), file=DBG_FILE, flush=True)
         if self.dispatch:
             if symbol == pygwink.SPACE or symbol == pygwink.ENTER:
                 self.dispatch()
@@ -546,7 +548,7 @@ class Life(pygwin.Window):
                 if dbg: print('on_key_press() a(symbol)={!a} buffer={}'.format(symbol, self.buffer), file=DBG_FILE, flush=True)
         elif symbol == pygwink.Q and modifiers == pygwink.MOD_CTRL:  exit()
         elif symbol == pygwink.A and modifiers == pygwink.MOD_CTRL:  self.addShape(self.wc//2, self.wr//2, self.shapeKey)
-        elif symbol == pygwink.C and modifiers == pygwink.MOD_CTRL:  self.toggleColors()
+        elif symbol == pygwink.C and modifiers == pygwink.MOD_CTRL:  self.toggleNColors()
         elif symbol == pygwink.E and modifiers == pygwink.MOD_CTRL:  self.erase()
         elif symbol == pygwink.F and modifiers == pygwink.MOD_CTRL:  self.toggleFullScreen()
         elif symbol == pygwink.G and modifiers == pygwink.MOD_CTRL:  self.register(self.absGenX)
