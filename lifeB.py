@@ -1,26 +1,27 @@
 import sys, os, copy, math
+sys.path.insert(0, os.path.abspath('C:/Python36/my/lib'))
 sys.path.insert(0, os.path.abspath('C:/Python36/my/lib/pyglet'))
 import pyglet
 import pyglet.window     as pygwin
 import pyglet.window.key as pygwink
-sys.path.insert(0, os.path.abspath('C:/Python36/my/lib'))
 import cmdArgs
 
 def fri(f): return int(math.floor(f+0.5))
 
-class Life(pygwin.Window):
+class LifeB(pygwin.Window):
     def __init__(self):
         display = pyglet.canvas.get_display()
         self.screens = display.get_screens()
 #        self.auxWin = pygwin.Window(width=900, height=500, resizable=True, screen=self.screens[0], visible=False)
 #        self.auxWin.set_visible()
         super().__init__(resizable=True, screen=self.screens[1], visible=False)
-        self.MIN, self.NOM, self.MAX = 0, 1, 2
-        self.ALIVE      = [(127, 255, 127), (127, 255, 255)]
-        self.DEAD       = [(  0,   0,   0), (100,  80, 127)]
-        self.MESH       = [(127, 191, 255), (255,   0,   0), (255, 255, 255)]
         self.DATA_SET   = set('.*')
         self.XLATE      = str.maketrans('.*', '01')
+        self.MIN, self.NOM, self.MAX = 0, 1, 2
+        self.MESH       = [(127, 191, 255), (255,   0,   0), (255, 255, 255)]
+        self.ALIVE      = [(127, 255, 127), (127, 255, 255)]
+        self.DEAD       = [(  0,   0,   0), (100,  80, 127)]
+        self.ncolors    = 2
         self.batch      = pyglet.graphics.Batch()
         self.data,        self.cells,    =  [], []
         self.clines,      self.rlines    =  [], []
@@ -32,19 +33,18 @@ class Life(pygwin.Window):
         self.shapes,      self.stats     =  {},  {}
         self.x,           self.y         =  0,   0
         self.gridLines,   self.dirty     = True, False
-        self.ncolors    = 2
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         = 17  # 51  # 221  # 11#101
-        self.wr         =  9  # 31  # 121  # 7#57
+        self.wc         = 100  # 51  # 221  # 11#101
+        self.wr         =  50  # 31  # 121  # 7#57
         self.ww         = 1000  # 1900  # 950
         self.wh         = 600   # 1100  # 590
         self.cw         = self.ww / self.wc
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'TestOddEven'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
-        print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
+        print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} shapeKey={} inName={} getNNCount={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.shapeKey, self.inName, self.getNNCount), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.wc         = int(self.argMap['c'][0])
         if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.wr         = int(self.argMap['r'][0])
@@ -71,19 +71,16 @@ class Life(pygwin.Window):
         self.ww, self.wh = self.get_size()
         self.cw = self.ww / self.wc
         self.ch = self.wh / self.wr
-        print('init(END) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={:6.3}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
-#        self.addGrid(self.wc, self.wr, self.ww, self.wh)
-        self.addGrid(21, 11, self.ww, self.wh)  # odd odd
-#        self.addGrid(20, 10, self.ww, self.wh)  # even even
-#        self.addGrid(c=20, r=11)  # even odd
-#        self.addGrid(c=13, r=10)  # odd even
-        self.set_visible()
+        print('init(END) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} shapeKey={} inName={} getNNCount={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.shapeKey, self.inName, self.getNNCount), file=DBG_FILE)
         self.parse()
-#        self.addShape(self.wc//2, self.wr//2, self.shapeKey)
+        self.addGrid(self.wc, self.wr, self.ww, self.wh, self.shapeKey)
         self.addShape(self.wc/2, self.wr/2, self.shapeKey)
-#        self.addShape(fri(self.wc/2-1), fri(self.wr/2-1), self.shapeKey)
+        self.set_visible()
 
-    def addGrid(self, c, r, ww, wh, dbg=1):
+    def addGrid(self, c, r, ww, wh, sk, dbg=1):
+        d = self.shapes[sk][0]
+        c += len(d[0]) % 2
+        r += len(d   ) % 2
         self.wc, self.wr = c, r
         self.ww, self.wh = ww, wh
         mesh, color = [1, 5, 25], self.DEAD[0]
@@ -91,6 +88,19 @@ class Life(pygwin.Window):
         h = self.ch = self.wh / self.wr
         x, y = self.x, self.y
         print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
+        self.data  = [[0 for i in range(c)] for j in range(r)]
+        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
+#        a = [[(0, pyglet.shapes.Rectangle(fri(i*w+x), fri(j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch)) for i in range(c)] for j in range(r)]
+#        print('addGrid() a[{}x{}]'.format(len(a), len(a[0])), file=DBG_FILE)
+#        for j in range(len(a)):
+#            for i in range(len(a[0])):
+#                print('addGrid() a[{}][{}]={} color={}'.format(j, i, a[j][i][0], a[j][i][1].color), file=DBG_FILE)
+#        self.data, self.cells = a[0], a[1]
+#        for j in range(len(self.data)):
+#            for i in range(len(self.data[0])):
+#                print('addGrid() data[{}][{}]={}'.format(j, i, self.data[j][i]), file=DBG_FILE, end=' ')
+#                print('addGrid() cells[{}][{}].color={}'.format(j, i, self.cells[j][i].color), file=DBG_FILE, end=' ')
+        """
         for j in range(r):
             tmp1, tmp2 = [], []
             for i in range(c):
@@ -102,6 +112,7 @@ class Life(pygwin.Window):
             self.data.append(tmp1)
             self.cells.append(tmp2)
         self.cells[0][0].color = (255, 127, 127)
+        """
         if c % 2 == 0:
             p = fri(c/2) % mesh[self.MAX]
             if dbg: print('addGrid() c={}=Even p={}'.format(c, p), file=DBG_FILE)
@@ -139,7 +150,7 @@ class Life(pygwin.Window):
                 self.rlines.append(pyglet.shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=color, batch=self.batch))
         else:
             q = fri(r/2-1)
-            if dbg: print('addGrid() r={}=Odd q='.format(r, q), file=DBG_FILE)
+            if dbg: print('addGrid() r={}=Odd q={}'.format(r, q), file=DBG_FILE)
             for j in range(fri(r/2)):
                 if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE, end=' ')
                 if   (j-q) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]   ; print('(j-q)%{}={}'.format(mesh[self.MAX], (j-q) % mesh[self.MAX]), file=DBG_FILE)
@@ -193,7 +204,7 @@ class Life(pygwin.Window):
         print('info1={}'.format(v[1]), file=DBG_FILE)
         if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
         if v[3]: print('info3={}'.format(v[3]), file=DBG_FILE)
-        if data is None: return  # print something?
+        if data is None: print('addShape data={} is None Nothing to Add'.format(data), file=DBG_FILE); return
         for j in range(h):
             print('    ', file=DBG_FILE, end='')
             for i in range(w):
@@ -328,6 +339,10 @@ class Life(pygwin.Window):
                         if dbg: print('info2={}'.format(info2), file=DBG_FILE)
                     elif dataSet <= self.DATA_SET:
                         line = line.translate(self.XLATE)
+#                        tmp = []
+#                        for c in line:
+#                            tmp.append(int(c))
+#                        data.insert(0, tmp)
                         data.insert(0, [int(c) for c in line])
                         state = 2
                         if dbg: print('    {}'.format(line), file=DBG_FILE)
@@ -442,10 +457,8 @@ class Life(pygwin.Window):
     def toggleGridLines(self):
         print('toggleGridLines(BGN) gridLines={}'.format(self.gridLines), file=DBG_FILE)
         self.gridLines = not self.gridLines
-        for i in range(len(self.clines)):
-            self.clines[i].visible = self.gridLines
-        for j in range(len(self.rlines)):
-            self.rlines[j].visible = self.gridLines
+        for i in range(len(self.clines)): self.clines[i].visible = self.gridLines
+        for j in range(len(self.rlines)): self.rlines[j].visible = self.gridLines
         print('toggleGridLines(END) gridLines={}'.format(self.gridLines), file=DBG_FILE)
 
 ####################################################################################################
@@ -578,5 +591,5 @@ class Life(pygwin.Window):
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log.txt", 'w')
-    life = Life()
+    life = LifeB()
     pyglet.app.run()

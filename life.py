@@ -1,9 +1,9 @@
 import sys, os, copy, math
+sys.path.insert(0, os.path.abspath('C:/Python36/my/lib'))
 sys.path.insert(0, os.path.abspath('C:/Python36/my/lib/pyglet'))
 import pyglet
 import pyglet.window     as pygwin
 import pyglet.window.key as pygwink
-sys.path.insert(0, os.path.abspath('C:/Python36/my/lib'))
 import cmdArgs
 
 def fri(f): return int(math.floor(f+0.5))
@@ -44,7 +44,7 @@ class Life(pygwin.Window):
         self.getNNCount = self.getNNCountWrap
         self.shapeKey   = 'TestOddEven'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
-        print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
+        print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} shapeKey={} inName={} getNNCount={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.shapeKey, self.inName, self.getNNCount), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.wc         = int(self.argMap['c'][0])
         if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.wr         = int(self.argMap['r'][0])
@@ -71,7 +71,7 @@ class Life(pygwin.Window):
         self.ww, self.wh = self.get_size()
         self.cw = self.ww / self.wc
         self.ch = self.wh / self.wr
-        print('init(END) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} getNNCount={} shapeKey={} inName={} tick={:6.3}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.getNNCount, self.shapeKey, self.inName, pyglet.clock.tick()), file=DBG_FILE)
+        print('init(END) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} shapeKey={} inName={} getNNCount={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.shapeKey, self.inName, self.getNNCount), file=DBG_FILE)
         self.parse()
         self.addGrid(self.wc, self.wr, self.ww, self.wh, self.shapeKey)
         self.addShape(self.wc/2, self.wr/2, self.shapeKey)
@@ -88,6 +88,10 @@ class Life(pygwin.Window):
         h = self.ch = self.wh / self.wr
         x, y = self.x, self.y
         print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
+        self.data  = [[0 for i in range(c)] for j in range(r)]
+        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
+        print('addGrid() using 2 list comprehensions data={}\ncells={}'.format(self.data, self.cells), file=DBG_FILE)
+        """
         for j in range(r):
             tmp1, tmp2 = [], []
             for i in range(c):
@@ -99,6 +103,7 @@ class Life(pygwin.Window):
             self.data.append(tmp1)
             self.cells.append(tmp2)
         self.cells[0][0].color = (255, 127, 127)
+        """
         if c % 2 == 0:
             p = fri(c/2) % mesh[self.MAX]
             if dbg: print('addGrid() c={}=Even p={}'.format(c, p), file=DBG_FILE)
@@ -136,7 +141,7 @@ class Life(pygwin.Window):
                 self.rlines.append(pyglet.shapes.Line(fri(x), fri(j*h+y), fri(c*w+x), fri(j*h+y), width=1, color=color, batch=self.batch))
         else:
             q = fri(r/2-1)
-            if dbg: print('addGrid() r={}=Odd q='.format(r, q), file=DBG_FILE)
+            if dbg: print('addGrid() r={}=Odd q={}'.format(r, q), file=DBG_FILE)
             for j in range(fri(r/2)):
                 if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE, end=' ')
                 if   (j-q) % mesh[self.MAX] == 0: color = self.MESH[self.MAX]   ; print('(j-q)%{}={}'.format(mesh[self.MAX], (j-q) % mesh[self.MAX]), file=DBG_FILE)
