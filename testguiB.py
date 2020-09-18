@@ -6,18 +6,17 @@ def fri(f): return int(math.floor(f+0.5))
 
 class TestGuiB(pyglet.window.Window):
     def __init__(self):
-        display = pyglet.canvas.get_display()
-        self.screens = display.get_screens()
         ww, wh = 1000, 600
         super(TestGuiB, self).__init__(ww, wh, resizable=True, visible=False)
         self.DATA_SET   = set('.*')
         self.XLATE      = str.maketrans('.*', '01')
-        self.COLORS     = [(0, 0, 0), (63, 63, 127), (63, 255, 63)]
+        self.COLORS     = [(0, 0, 0), (63, 63, 127), (63, 255, 63), (255, 127, 127)]
         self.batch      = pyglet.graphics.Batch()
         self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         self.cells, self.shapes = [], {}
         self.c,     self.r      = 21, 11
+        print('COLORS={}'.format(self.COLORS))
         self.parse()
         self.addGrid(ww, wh)
         self.addShape(self.c/2, self.r/2, self.shapeKey)
@@ -27,10 +26,18 @@ class TestGuiB(pyglet.window.Window):
         w = ww / (self.c * 2)
         h = wh / (self.r * 2)
 #        self.cells = [[pyglet.shapes.Rectangle(i*w, wh-h-j*h, w, h, color=self.COLORS[(i+j) % 2], batch=self.batch) for i in range(self.c)] for j in range(self.r)]
-        self.cells = [[pyglet.shapes.Rectangle(i*w, j*h, w, h, color=self.COLORS[(i+j) % 2], batch=self.batch) for i in range(self.c)] for j in range(self.r)]
-        for j in range(len(self.cells)):
-            for i in range(len(self.cells[0])):
-                print('addGrid() cells[{}][{}].color={}'.format(j, i, self.cells[j][i].color))
+#        self.cells = [[pyglet.shapes.Rectangle(i*w, j*h, w, h, color=self.COLORS[(i+j) % 2], batch=self.batch) for i in range(self.c)] for j in range(self.r)]
+        for j in range(self.r):
+            tmp = []
+            for i in range(self.c):
+                s = pyglet.shapes.Rectangle(i*w, wh-h-j*h, w, h, color=self.COLORS[(i+j) % 2], batch=self.batch)
+#                s = pyglet.shapes.Rectangle(i*w, j*h, w, h, color=self.COLORS[(i+j) % 2], batch=self.batch)
+#                s = pyglet.shapes.Rectangle(i*w, j*h, w, h, color=self.COLORS[2], batch=self.batch)
+                print('addGrid() [{}][{}] s.color={}'.format(j, i, s.color))
+                tmp.append(s)
+            self.cells.append(tmp)
+        self.cells[0][0].color = self.COLORS[3]
+        print('addGrid() [0][0] color={}'.format(self.cells[0][0].color))
 
     def addShape(self, p, q, key='MyShape_1'):
         v = self.shapes[key]
@@ -52,20 +59,25 @@ class TestGuiB(pyglet.window.Window):
                     self.cells[j+r][i+c].color = self.COLORS[2]
 #                    print('cells[{}][{}].color={}'.format(j+r, i+c, self.cells[j+r][i+c].color))
             print()
-        self.printCells(self.cells, 'addShape()')
+        self.printCells('addShape()')
         print('addShape(END) {}'.format(txt))
 
-    def printCells(self, cells, reason=''):
-        rows, cols = len(cells), len(cells[0]); area = rows * cols
+    def printCells(self, reason=''):
+        rows, cols = len(self.cells), len(self.cells[0])
+        area = rows * cols
         print('printCells(BGN) {} cells[{}x{}={:,}] COLORS={}'.format(reason, rows, cols, area, self.COLORS))
         for r in range(rows):
             for c in range(cols):
-                if   cells[r][c].color == self.COLORS[2]:
-                    print('X', end='')
-                elif cells[r][c].color == self.COLORS[0] or cells[r][c].color == self.COLORS[1]:
-                    print(' ', end='')
+                if   self.cells[r][c].color == self.COLORS[0]:
+                    print('0', end='')
+                elif self.cells[r][c].color == self.COLORS[1]:
+                    print('1', end='')
+                elif self.cells[r][c].color == self.COLORS[2]:
+                    print('2', end='')
+                elif self.cells[r][c].color == self.COLORS[3]:
+                    print('3', end='')
                 else:
-                    print('?', end='')
+                    print('{}'.format(self.cells[r][c].color), end='')
 #                print('printCells() cells[{}][{}].color={}'.format(r, c, cells[r][c].color))
             print()
         print('printCells(END) {} data[{}x{}={:,}] COLORS={}'.format(reason, rows, cols, area, self.COLORS))
@@ -74,9 +86,9 @@ class TestGuiB(pyglet.window.Window):
         super().on_resize(width, height)
         w = width  / (self.c * 2)
         h = height / (self.r * 2)
-        for j in range(len(self.cells)):
+        for j in range(len(self.cells)):  # -1, -1, -1):
             for i in range(len(self.cells[0])):
-                self.cells[j][i].position = (i*w, j*h)
+                self.cells[j][i].position = (i*w, height-h-j*h)
                 self.cells[j][i].width    = w
                 self.cells[j][i].height   = h
 
@@ -114,7 +126,8 @@ class TestGuiB(pyglet.window.Window):
 #                        for c in line:
 #                            tmp.append(int(c))
 #                        data.insert(0, tmp)
-                        data.insert(0, [int(c) for c in line])
+#                        data.insert(0, [int(c) for c in line])
+                        data.append([int(c) for c in line])
                         state = 2
                         if dbg: print('    {}'.format(line))
                     elif state == 2:
@@ -134,7 +147,7 @@ class TestGuiB(pyglet.window.Window):
 
 #    def addCell(self, c, r, dbg=1):
 #        self.cells[r][c].color = self.COLORS[2]
-#        if dbg: print('\naddCell() cells[{}][{}].color={}'.format(r, c, self.cells[r][c].color))
+#        if dbg: print('addCell() cells[{}][{}].color={}'.format(r, c, self.cells[r][c].color))
 
 if __name__ == '__main__':
     life = TestGuiB()

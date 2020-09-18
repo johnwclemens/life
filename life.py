@@ -76,7 +76,7 @@ class Life(pygwin.Window):
         self.addGrid(self.wc, self.wr, self.ww, self.wh, self.shapeKey)
         self.addShape(self.wc/2, self.wr/2, self.shapeKey)
         self.set_visible()
-
+#    listOfA, listOfB = [[i for i in cur_list if i is not None] for cur_list in zip(*[(idx,None) if value == 'A' else (None,idx) for idx,value in enumerate(s)])]
     def addGrid(self, c, r, ww, wh, sk, dbg=1):
         d = self.shapes[sk][0]
         c += len(d[0]) % 2
@@ -89,21 +89,17 @@ class Life(pygwin.Window):
         x, y = self.x, self.y
         print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
         self.data  = [[0 for i in range(c)] for j in range(r)]
-        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
+        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
         print('addGrid() using 2 list comprehensions data={}\ncells={}'.format(self.data, self.cells), file=DBG_FILE)
-        """
-        for j in range(r):
-            tmp1, tmp2 = [], []
-            for i in range(c):
-                tmp1.append(0)
-                color = self.DEAD[(i+j) % self.ncolors]
-                s = (pyglet.shapes.Rectangle(fri(i*w+x), fri(j*h+y), fri(w), fri(h), color=color, batch=self.batch))
-                s.opacity = 255
-                tmp2.append(s)
-            self.data.append(tmp1)
-            self.cells.append(tmp2)
+#        for j in range(r):
+#            tmp1, tmp2 = [], []
+#            for i in range(c):
+#                tmp1.append(0)
+#                tmp2.append(pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch))
+#            self.data.append(tmp1)
+#            self.cells.append(tmp2)
+#        print('addGrid() using double for loops data={}\ncells={}'.format(self.data, self.cells), file=DBG_FILE)
         self.cells[0][0].color = (255, 127, 127)
-        """
         if c % 2 == 0:
             p = fri(c/2) % mesh[self.MAX]
             if dbg: print('addGrid() c={}=Even p={}'.format(c, p), file=DBG_FILE)
@@ -171,7 +167,7 @@ class Life(pygwin.Window):
         if dbg: print('on_resize() ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f} m={} n={}'.format(ww, wh, c, r, w, h, x, y, m, n), file=DBG_FILE)
         for j in range(r):
             for i in range(c):
-                self.cells[j][i].position = (fri(i*w+x), fri(j*h+y))
+                self.cells[j][i].position = (fri(i*w+x), fri(wh-h-j*h+y))
                 self.cells[j][i].width    = fri(w)
                 self.cells[j][i].height   = fri(h)
         for i in range(c+1):  # len(self.clines)):
@@ -334,7 +330,7 @@ class Life(pygwin.Window):
 #                        for c in line:
 #                            tmp.append(int(c))
 #                        data.insert(0, tmp)
-                        data.insert(0, [int(c) for c in line])
+                        data.append([int(c) for c in line])
                         state = 2
                         if dbg: print('    {}'.format(line), file=DBG_FILE)
                     elif state == 2:
@@ -392,7 +388,7 @@ class Life(pygwin.Window):
     def printData(data, reason=''):
         rows, cols = len(data), len(data[0]); area = rows * cols
         print('printData(BGN) {} data[{}x{}={:,}]'.format(reason, rows, cols, area), file=DBG_FILE)
-        for r in range(rows-1, -1, -1):
+        for r in range(rows):
             for c in range(cols):
                 if data[r][c] == 0: print(' ', file=DBG_FILE, end='')
                 else:               print('X', file=DBG_FILE, end='')
@@ -571,6 +567,7 @@ class Life(pygwin.Window):
         if dbg: print('on_key_press(END) {:5} {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modStr, self.dispatch), file=DBG_FILE, flush=True)
 
     def on_mouse_release(self, x, y, button, modifiers):  # pygwin.mouse.MIDDLE #pygwin.mouse.LEFT #pygwin.mouse.RIGHT
+        y = self.wh - y
         c, r = int(x / self.cw), int(y / self.ch)
         print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} c={} r={} d[r][c]={}'.format(button, modifiers, x, y, self.cw, self.ch, c, r, self.data[r][c]), flush=True)
         print('on_mouse_release() b={} m={} x={:4} y={:4} cw={:6.2f} ch={:6.2f} c={} r={} d[r][c]={}'.format(button, modifiers, x, y, self.cw, self.ch, c, r, self.data[r][c]), file=DBG_FILE)
