@@ -34,15 +34,15 @@ class Life(pygwin.Window):
         self.x,           self.y         =  0,   0
         self.gridLines,   self.dirty     = True, False
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         = 100  # 51  # 221  # 11#101
-        self.wr         =  50  # 31  # 121  # 7#57
+        self.wc         =  121  # 100  # 51  # 221  # 11  # 101
+        self.wr         =   71  # 50  # 31  # 121  #  7  # 57
         self.ww         = 1000  # 1900  # 950
-        self.wh         = 600   # 1100  # 590
+        self.wh         =  600   # 1100  # 590
         self.cw         = self.ww / self.wc
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'TestOddEven'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'TestEvenOdd'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} shapeKey={} inName={} getNNCount={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.shapeKey, self.inName, self.getNNCount), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -80,20 +80,23 @@ class Life(pygwin.Window):
 #    listOfA, listOfB = [[i for i in cur_list if i is not None] for cur_list in zip(*[(idx,None) if value == 'A' else (None,idx) for idx,value in enumerate(s)])]
     def addGrid(self, c, r, ww, wh, sk, dbg=1):
         d = self.shapes[sk][0]
-        c += len(d[0]) % 2
-        r += len(d   ) % 2
+        x, y = self.x, self.y
+        print('addGrid(BGN) c={} r={} ww={} wh={} x={:6.2f} y={:6.2f} sk={}'.format(c, r, ww, wh, x, y, sk), file=DBG_FILE)
+        if   (len(d[0]) % 2) == 1 and c % 2 == 0: c += 1
+        elif (len(d[0]) % 2) == 0 and c % 2 == 1: c -= 1
+        if   (len(d   ) % 2) == 1 and r % 2 == 0: r += 1
+        elif (len(d   ) % 2) == 0 and r % 2 == 1: r -= 1
         self.wc, self.wr = c, r
         self.ww, self.wh = ww, wh
         mesh, color = [1, 5, 25], self.DEAD[0]
         w = self.cw = self.ww / self.wc
         h = self.ch = self.wh / self.wr
-        x, y = self.x, self.y
-        print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
+#        print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
 #        self.data  = [[0 for i in range(c)] for j in range(r)]
 #        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
 #        print('addGrid() using 2 list comprehensions data={}\ncells={}'.format(self.data, self.cells), file=DBG_FILE)
         self.data, self.cells = zip(*[map(list, zip(*[[0, pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j)%self.ncolors], batch=self.batch)] for i in range(c)])) for j in range(r)])
-        print('addGrid() using nested list comprehension data={}\ncells={}\n'.format(self.data, self.cells), file=DBG_FILE)
+#        print('addGrid() using nested list comprehension data={}\ncells={}\n'.format(self.data, self.cells), file=DBG_FILE)
 #        for j in range(r):
 #            tmp1, tmp2 = [], []
 #            for i in range(c):
@@ -365,9 +368,9 @@ class Life(pygwin.Window):
         return n
 
     def displayStats(self, dbg=1):
-        txt = 'Gen={} Pop={} Area={:,} [{}x{}] done={} undone={} Dens={:6.3}% IDens={:7,.0f} FPS={:7,.0f} IFPS={:6.3}'.\
+        txt = 'Gen={} Pop={} Area={:,} [{}x{}] done={} undone={} Dens={:6.3}% IDens={:7,.0f} FPS={:7,.0f} IFPS={:6.3} shapeKey={}'.\
             format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.wc, self.wr, len(self.done), len(self.undone),
-                   self.stats['S_DENS'], self.stats['S_IDENS'], self.stats['S_FPS'], self.stats['S_IFPS'])
+                   self.stats['S_DENS'], self.stats['S_IDENS'], self.stats['S_FPS'], self.stats['S_IFPS'], self.shapeKey)
         self.set_caption(txt)
         if dbg: print('{}'.format(txt), file=DBG_FILE)
 
