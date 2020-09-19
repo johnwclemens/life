@@ -34,15 +34,15 @@ class Life(pygwin.Window):
         self.x,           self.y         =  0,   0
         self.gridLines,   self.dirty     = True, False
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         =  121  # 100  # 51  # 221  # 11  # 101
-        self.wr         =   71  # 50  # 31  # 121  #  7  # 57
+        self.wc         =  20  # 100  # 51  # 221  # 11  # 101
+        self.wr         =  10  #  50  # 31  # 121  #  7  #  57
         self.ww         = 1000  # 1900  # 950
-        self.wh         =  600   # 1100  # 590
+        self.wh         =  600  # 1100  # 590
         self.cw         = self.ww / self.wc
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'TestEvenOdd'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('init(BGN) ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f} fullScreen={} shapeKey={} inName={} getNNCount={}'.format(self.ww, self.wh, self.wc, self.wr, self.cw, self.ch, self.fullScreen, self.shapeKey, self.inName, self.getNNCount), file=DBG_FILE)
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -89,8 +89,9 @@ class Life(pygwin.Window):
         self.wc, self.wr = c, r
         self.ww, self.wh = ww, wh
         mesh, color = [1, 5, 25], self.DEAD[0]
-        w = self.cw = self.ww / self.wc
-        h = self.ch = self.wh / self.wr
+        self.cw = self.ww / self.wc
+        self.ch = self.wh / self.wr
+        w, h = self.cw, self.ch
 #        print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
 #        self.data  = [[0 for i in range(c)] for j in range(r)]
 #        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
@@ -162,15 +163,15 @@ class Life(pygwin.Window):
 
     def on_resize(self, width, height, dbg=0):
         super().on_resize(width, height)
-        ww = self.ww = width
-        wh = self.wh = height
-        m, n = 0, 0  # 1, 1
-        x, y = self.x, self.y
+        self.ww, self.wh = width, height
+        self.cw = self.ww / self.wc
+        self.ch = self.wh / self.wr
         if dbg: print('on_resize(BGN) width={} height={} ww={} wh={} wc={} wr={} cw={:6.2f} ch={:6.2f}'.format(width, height, self.ww, self.wh, self.wc, self.wr, self.cw, self.ch), file=DBG_FILE)
+        ww, wh = self.ww, self.wh
+        w, h = self.cw, self.ch
         c, r = self.wc, self.wr
-        w = self.cw = ww / c
-        h = self.ch = wh / r
-        if dbg: print('on_resize() ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f} m={} n={}'.format(ww, wh, c, r, w, h, x, y, m, n), file=DBG_FILE)
+        x, y = self.x, self.y
+        if dbg: print('on_resize() ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
         for j in range(r):
             for i in range(c):
                 self.cells[j][i].position = (fri(i*w+x), fri(wh-h-j*h+y))
@@ -294,7 +295,7 @@ class Life(pygwin.Window):
         self.updateStats()
         print('recallShape(END) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
 
-    def calcPop(self, dbg=0):
+    def calcPop(self, dbg=1):
         if dbg: print('calcPop(BGN) pop={}'.format(self.pop), file=DBG_FILE)
         self.pop = 0
         for r in range(self.wr):
@@ -305,7 +306,7 @@ class Life(pygwin.Window):
     def parse(self, dbg=0):
         print('parse(BGN)', file=DBG_FILE)
         data, key, state = [], '', 0
-        info1 = info2 = info3 = ''
+        info1, info2, info3 = '', '', ''
         with open(self.inName, 'r') as inFile:
             for line in inFile:
                 line = line.strip()
@@ -319,7 +320,7 @@ class Life(pygwin.Window):
                                 if dbg:
                                     print('key=[{}] size=[{} x {}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])), file=DBG_FILE)
                                     print('info1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(info1, info2, info3), file=DBG_FILE)
-                                info2 = info3 = ''
+                                info2, info3 = '', ''
                             data = []
                             key = line[1:p]
                             info1 = line[p+1:].strip()
@@ -368,7 +369,7 @@ class Life(pygwin.Window):
         return n
 
     def displayStats(self, dbg=1):
-        txt = 'Gen={} Pop={} Area={:,} [{}x{}] done={} undone={} Dens={:6.3}% IDens={:7,.0f} FPS={:7,.0f} IFPS={:6.3} shapeKey={}'.\
+        txt = 'Gen:{:3,} Pop:{:6,} Area:{:7,} [{}x{}] Done:{:3,} Undone:{:3,} Dens:{:6.3}% IDens:{:7,.0f} FPS:{:6,.0f} IFPS:{:6.3} shapeKey={}'.\
             format(self.stats['S_GEN'], self.stats['S_POP'], self.stats['S_AREA'], self.wc, self.wr, len(self.done), len(self.undone),
                    self.stats['S_DENS'], self.stats['S_IDENS'], self.stats['S_FPS'], self.stats['S_IFPS'], self.shapeKey)
         self.set_caption(txt)
@@ -392,12 +393,14 @@ class Life(pygwin.Window):
 
     @staticmethod
     def printData(data, reason=''):
-        rows, cols = len(data), len(data[0]); area = rows * cols
+        rows, cols = len(data), len(data[0])
+        area = rows * cols
         print('printData(BGN) {} data[{}x{}={:,}]'.format(reason, rows, cols, area), file=DBG_FILE)
         for r in range(rows):
             for c in range(cols):
-                if data[r][c] == 0: print(' ', file=DBG_FILE, end='')
-                else:               print('X', file=DBG_FILE, end='')
+                if   data[r][c] == 0: print(' ', file=DBG_FILE, end='')
+                elif data[r][c] == 1: print('X', file=DBG_FILE, end='')
+                else:                 print('printData() Illegal State/Value data[{}][{}]={}'.format(r, c, data[r][c]), file=DBG_FILE); return
             print(file=DBG_FILE)
         print('printData(END) {} data[{}x{}={:,}]'.format(reason, rows, cols, area), file=DBG_FILE)
 
@@ -407,8 +410,8 @@ class Life(pygwin.Window):
 
     def erase(self):
         print('erase(BGN) gen={} pop={} done[{}] undone[{}]'.format(self.gen, self.pop, len(self.done), len(self.undone)), file=DBG_FILE)
-        self.gen   = self.pop    = 0
-        self.done  = self.undone = []
+        self.gen,  self.pop    = 0, 0
+        self.done, self.undone = [], []
         self.stats = {}
         for r in range(self.wr):
             for c in range(self.wc):
@@ -467,14 +470,18 @@ class Life(pygwin.Window):
         if self.dirty: self.printData(self.data, 'dirty undo()'); self.dirty = False
         print('undo(BGN) gen={} genX={} pop={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
         if self.gen > 0 and len(self.done) > 0:
+#            print('undo(a1) gen={} done[{}] undone[{}]'.format(self.gen, len(self.done), len(self.undone)), file=DBG_FILE)
             self.gen -= 1
-            self.data = self.done.pop(-1)
+            self.data = self.done.pop()
             self.undone.append(self.data)
+#            print('undo(a2) gen={} done[{}] undone[{}]'.format(self.gen, len(self.done), len(self.undone)), file=DBG_FILE)
+            self.pop = 0
             for r in range(self.wr):
                 for c in range(self.wc):
-                    if self.data[r][c] == 0: self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
-                    else:                    self.cells[r][c].color = self.ALIVE[0]
-            self.calcPop()
+                    if   self.data[r][c] == 0: self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
+                    elif self.data[r][c] == 1: self.cells[r][c].color = self.ALIVE[0]; self.pop += 1
+                    else:                      print('undo() Illegal State/Value data[{}][{}]={}'.format(r, c, self.data[r][c]), file=DBG_FILE)
+#            self.calcPop()  # should be able to calc/update pop in above loop instead
             if self.gen == self.genX:
                 self.stop(self.undo, reason=reason)
                 self.genX = -1
@@ -486,7 +493,7 @@ class Life(pygwin.Window):
     def update(self, dt=-1.0, reason=''):
         if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
         print('update(BGN) gen={} genX={} pop={} done[{}] undone[{}] dt={:6.3} reason={}'.format(self.gen, self.genX, self.pop, len(self.done), len(self.undone), dt, reason), file=DBG_FILE)
-        if self.pop == 0: print('update() pop={} Nothing left Alive'.format(self.pop), file=DBG_FILE); return
+        if self.pop == 0: print('update() pop={} Nothing Left Alive'.format(self.pop), file=DBG_FILE); return
         self.gen += 1
         self.done.append(self.data)
         self.updateDataCells()
