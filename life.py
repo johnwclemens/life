@@ -76,6 +76,7 @@ class Life(pygwin.Window):
         self.addGrid(self.wc, self.wr, self.ww, self.wh, self.shapeKey)
         self.addShape(self.wc/2, self.wr/2, self.shapeKey)
         self.set_visible()
+
 #    listOfA, listOfB = [[i for i in cur_list if i is not None] for cur_list in zip(*[(idx,None) if value == 'A' else (None,idx) for idx,value in enumerate(s)])]
     def addGrid(self, c, r, ww, wh, sk, dbg=1):
         d = self.shapes[sk][0]
@@ -88,9 +89,11 @@ class Life(pygwin.Window):
         h = self.ch = self.wh / self.wr
         x, y = self.x, self.y
         print('addGrid(BGN) ww={} wh={} c={} r={} w={:6.2f} h={:6.2f} x={:6.2f} y={:6.2f}'.format(ww, wh, c, r, w, h, x, y), file=DBG_FILE)
-        self.data  = [[0 for i in range(c)] for j in range(r)]
-        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
-        print('addGrid() using 2 list comprehensions data={}\ncells={}'.format(self.data, self.cells), file=DBG_FILE)
+#        self.data  = [[0 for i in range(c)] for j in range(r)]
+#        self.cells = [[pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j) % self.ncolors], batch=self.batch) for i in range(c)] for j in range(r)]
+#        print('addGrid() using 2 list comprehensions data={}\ncells={}'.format(self.data, self.cells), file=DBG_FILE)
+        self.data, self.cells = zip(*[map(list, zip(*[[0, pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j)%self.ncolors], batch=self.batch)] for i in range(c)])) for j in range(r)])
+        print('addGrid() using nested list comprehension data={}\ncells={}\n'.format(self.data, self.cells), file=DBG_FILE)
 #        for j in range(r):
 #            tmp1, tmp2 = [], []
 #            for i in range(c):
