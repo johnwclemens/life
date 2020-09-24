@@ -22,9 +22,9 @@ class Life(pygwin.Window):
         self.ALIVE      = [(127, 255, 127), (127, 255, 255)]
         self.DEAD       = [(  0,   0,   0), (100,  80, 127)]
         self.ncolors    = 2
-        self.batch      = pyglet.graphics.Batch()
-        self.data,        self.cells,    =  [], []
-        self.clines,      self.rlines    =  [], []
+        self.prev,        self.batch     = None, pyglet.graphics.Batch()
+        self.data,        self.cells,    =  [],  []
+        self.clines,      self.rlines    =  [],  []
         self.savedData,   self.savedDone =  [],  []
         self.dispatch,    self.buffer    = None, ''
         self.genX,        self.period    = -1,   1/120
@@ -34,15 +34,15 @@ class Life(pygwin.Window):
         self.gridLines,   self.dirty     = True, False
         self.x,           self.y         =  0,   0
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         =  20  # 100  # 51  # 221  # 11  # 101
-        self.wr         =  10  #  50  # 31  # 121  #  7  #  57
+        self.wc         =  200  # 100  # 51  # 221  # 11  # 101
+        self.wr         =  100  #  50  # 31  # 121  #  7  #  57
         self.ww         = 1000  # 1900  # 950
         self.wh         =  600  # 1100  # 590
         self.cw         = self.ww / self.wc
         self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'TestSteadyState'  # 'MyShape_07'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         self.printGeom('init(BGN)', 'fullScreen={} shapeKey[{}] inName={} getNNCount={}'.format(self.fullScreen, self.shapeKey, self.inName, self.getNNCount))
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
@@ -185,7 +185,7 @@ class Life(pygwin.Window):
             if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
         if dbg: self.printGeom('on_resize(END)', 'x={:6.2f} y={:6.2f}'.format(x, y))
 
-    def addShape(self, p, q, key='MyShape_1'):
+    def addShape(self, p, q, key='MyShape_07'):
         v = self.shapes[key]
         data = v[0]
         w, h = len(data[0]), len(data)
@@ -478,7 +478,7 @@ class Life(pygwin.Window):
                     elif self.data[r][c] == 1: self.cells[r][c].color = self.ALIVE[0]; self.pop += 1
                     else:                      print('undo() ERROR Illegal Value data[{}][{}]={}'.format(r, c, self.data[r][c]), file=DBG_FILE); exit()
             if self.gen == self.genX:
-                self.stop(self.undo, reason=reason)
+                self.stop(self.undo, reason)
                 self.genX = -1
             self.updateStats()
             self.printData(self.data, 'undo()')
@@ -489,16 +489,28 @@ class Life(pygwin.Window):
         if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
         self.printInfo('update(BGN)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
         if self.pop == 0: print('update() pop={} Nothing Left Alive'.format(self.pop), file=DBG_FILE); return
+        if self.steadyState(): self.stop(self.update, 'steadyState {}'.format(reason))
+        self.prev = copy.deepcopy(self.data)
         self.gen += 1
         self.done.append(self.data)
         self.updateDataCells()
         self.printInfo('update()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
         if self.gen == self.genX:
-            self.stop(self.update, reason=reason)
+            self.stop(self.update, 'gen[{}]==genX[{}] {}'.format(self.gen, self.genX, reason))
             self.genX = -1
         self.updateStats()
         self.printData(self.data, 'update()')
         self.printInfo('update(END)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+
+    def steadyState(self):
+        if self.prev is None:                          return False
+        if self.pop != self.stats['S_POP']:            return False
+        for j in range(self.wr):
+            for i in range(self.wc):
+                if self.prev[j][i] != self.data[j][i]: return False
+        print('steadyState() Data is Unchanged'.format(), file=DBG_FILE)
+        self.prev, self.genX = None, -1
+        return True
 
     @staticmethod
     def stop(func, reason):

@@ -12,7 +12,7 @@ class TestGuiB(pyglet.window.Window):
         self.XLATE      = str.maketrans('.*', '01')
         self.COLORS     = [(0, 0, 0), (63, 63, 127), (63, 255, 63), (255, 127, 127)]
         self.batch      = pyglet.graphics.Batch()
-        self.shapeKey   = 'MyShape_1'  # 'MyShape_1'  # 'Gosper glider gun'
+        self.shapeKey   = 'MyShapeA_00'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         self.cells, self.shapes = [], {}
         self.c,     self.r      = 21, 11
@@ -39,7 +39,7 @@ class TestGuiB(pyglet.window.Window):
         self.cells[0][0].color = self.COLORS[3]
         print('addGrid() [0][0] color={}'.format(self.cells[0][0].color))
 
-    def addShape(self, p, q, key='MyShape_1'):
+    def addShape(self, p, q, key='MyShapeA_00'):
         v = self.shapes[key]
         data = v[0]
         w, h = len(data[0]), len(data)
@@ -59,6 +59,10 @@ class TestGuiB(pyglet.window.Window):
                     self.cells[j+r][i+c].color = self.COLORS[2]
 #                    print('cells[{}][{}].color={}'.format(j+r, i+c, self.cells[j+r][i+c].color))
             print()
+        print('addShape() p={} q={} fp={} fq={}'.format(p, q, fri(p), fri(q)), flush=True)
+#        self.cells[0][1].color = self.COLORS[2]
+#        self.cells[0][1].opacity = 127
+        self.cells[0][1].rotation = 30.0
         self.printCells('addShape()')
         print('addShape(END) {}'.format(txt))
 
@@ -70,11 +74,11 @@ class TestGuiB(pyglet.window.Window):
             for c in range(cols):
                 if   self.cells[r][c].color == self.COLORS[0]:
                     print('0', end='')
-                elif self.cells[r][c].color == self.COLORS[1]:
+                elif self.cells[r][c].color == self.COLORS[1]:         # constructor stores tuple
                     print('1', end='')
-                elif self.cells[r][c].color == self.COLORS[2]:
+                elif tuple(self.cells[r][c].color) == self.COLORS[2]:  # cast from list to tuple, because property setter converts tuple to list
                     print('2', end='')
-                elif self.cells[r][c].color == self.COLORS[3]:
+                elif tuple(self.cells[r][c].color) == self.COLORS[3]:
                     print('3', end='')
                 else:
                     print('{}'.format(self.cells[r][c].color), end='')
@@ -94,8 +98,8 @@ class TestGuiB(pyglet.window.Window):
 
     def parse(self, dbg=0):
         print('parse(BGN)')
-        data, key, state = [], '', 0
-        info1 = info2 = info3 = ''
+        data,    key, state = [], '', 0
+        info1, info2, info3 = '', '', ''
         with open(self.inName, 'r') as inFile:
             for line in inFile:
                 line = line.strip()
@@ -109,7 +113,7 @@ class TestGuiB(pyglet.window.Window):
                                 if dbg:
                                     print('key=[{}] size=[{} x {}={}]]'.format(key, len(data), len(data[0]), len(data)*len(data[0])))
                                     print('info1=[{}]\ninfo2=[{}]\ninfo3=[{}]'.format(info1, info2, info3))
-                                info2 = info3 = ''
+                                info2, info3 = '', ''
                             data = []
                             key = line[1:p]
                             info1 = line[p+1:].strip()
@@ -144,6 +148,14 @@ class TestGuiB(pyglet.window.Window):
     def on_draw(self):
         self.clear()
         self.batch.draw()
+
+    def on_text(self, text):
+        print('on_text() text={}'.format(text))
+
+    def on_text_motion(self, motion):
+        if   motion == pyglet.window.key.MOTION_RIGHT: print('on_text_motion() motion={}=MOTION_RIGHT'.format(motion))
+        elif motion == pyglet.window.key.MOTION_LEFT:  print('on_text_motion() motion={}=MOTION_LEFT'.format(motion))
+        else:                                          print('on_text_motion() motion={}=???'.format(motion))
 
 #    def addCell(self, c, r, dbg=1):
 #        self.cells[r][c].color = self.COLORS[2]
