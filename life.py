@@ -33,48 +33,38 @@ class Life(pyglet.window.Window):
         self.gridLines,   self.dirty     = True, False
         self.x,           self.y         =  0,   0
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.wc         =  200  # 100  # 51  # 221  # 11  # 101
-        self.wr         =  120  #  50  # 31  # 121  #  7  #  57
+        self.nc         =  200  # 100  # 51  # 221  # 11  # 101
+        self.nr         =  120  #  50  # 31  # 121  #  7  #  57
         self.ww         = 1000  # 1900  # 950
         self.wh         =  600  # 1100  # 590
-        self.cw         = self.ww / self.wc
-        self.ch         = self.wh / self.wr
         self.fullScreen = False
         self.getNNCount = self.getNNCountWrap
         self.shapeKey   = 'TestOddOdd'  # 'MyShape_07'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
-        self.dumpGeom('init(BGN)', 'fullScreen={} shapeKey[{}] inName={} getNNCount={}'.format(self.fullScreen, self.shapeKey, self.inName, self.getNNCount))
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
-        if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.wc         = int(self.argMap['c'][0])
-        if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.wr         = int(self.argMap['r'][0])
-        if 'W' in self.argMap and len(self.argMap['W'])  > 0: self.ww         = int(self.argMap['W'][0])
-        if 'H' in self.argMap and len(self.argMap['H'])  > 0: self.wh         = int(self.argMap['H'][0])
-        if 'w' in self.argMap and len(self.argMap['w'])  > 0: self.cw         = int(self.argMap['w'][0])
-        if 'h' in self.argMap and len(self.argMap['h'])  > 0: self.ch         = int(self.argMap['h'][0])
-        if 'F' in self.argMap and len(self.argMap['F']) == 0: self.fullScreen = True
+        if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.nc         = int(self.argMap['c'][0])
+        if 'r' in self.argMap and len(self.argMap['r'])  > 0: self.nr         = int(self.argMap['r'][0])
+        if 'w' in self.argMap and len(self.argMap['w'])  > 0: self.ww         = int(self.argMap['w'][0])
+        if 'h' in self.argMap and len(self.argMap['h'])  > 0: self.wh         = int(self.argMap['h'][0])
         if 'n' in self.argMap and len(self.argMap['n']) == 0: self.getNNCount = self.getNNCountHard
         if 'k' in self.argMap and len(self.argMap['k'])  > 0: self.shapeKey   = self.argMap['k'][0]
         if 'f' in self.argMap and len(self.argMap['f'])  > 0: self.inName     = self.argMap['f'][0]
-        print('wc={}'.format(self.wc), file=DBG_FILE)
-        print('wr={}'.format(self.wr), file=DBG_FILE)
+        if 'F' in self.argMap and len(self.argMap['F']) == 0: self.fullScreen = True
+        print('nc={}'.format(self.nc), file=DBG_FILE)
+        print('nr={}'.format(self.nr), file=DBG_FILE)
         print('ww={}'.format(self.ww), file=DBG_FILE)
         print('wh={}'.format(self.wh), file=DBG_FILE)
-        print('cw={:6.2f}'.format(self.cw), file=DBG_FILE)
-        print('ch={:6.2f}'.format(self.ch), file=DBG_FILE)
-        print('fullScreen={}'.format(self.fullScreen), file=DBG_FILE)
         print('getNNCount={}'.format(self.getNNCount), file=DBG_FILE)
         print('shapeKey={}'.format(self.shapeKey), file=DBG_FILE)
         print('inName={}'.format(self.inName), file=DBG_FILE)
+        print('fullScreen={}'.format(self.fullScreen), file=DBG_FILE)
         self.set_size(self.ww, self.wh)
         if self.fullScreen:  self.set_fullscreen(self.fullScreen)
-        self.ww, self.wh = self.get_size()
-        self.cw = self.ww / self.wc
-        self.ch = self.wh / self.wr
-        self.dumpGeom('init(END)', 'fullScreen={} shapeKey={} inName={} getNNCount={}'.format(self.fullScreen, self.shapeKey, self.inName, self.getNNCount))
-        self.useOrderedGroup = False
+#        self.ww, self.wh = self.get_size()
+        self.useOrderedGroup = True
         self.parse()
         self._initGrid()
-        self.addShape(self.wc/2, self.wr/2, self.shapeKey)
+        self.addShape(self.nc/2, self.nr/2, self.shapeKey)
         self.set_visible()
 
     def _initGroup(self, order=0, parent=None):
@@ -85,108 +75,100 @@ class Life(pyglet.window.Window):
     def getMeshColor(i, j, mesh):
         MIN, NOM, MAX = 0, 1, 2
         MESH = [(255, 0, 0), (0, 255, 0), (255, 255, 255)]
-        if (i-j)%mesh[MAX]==0: return MESH[MAX]
+        if   (i-j)%mesh[MAX]==0: return MESH[MAX]
         elif (i-j)%mesh[NOM]==0: return MESH[NOM]
         elif (i-j)%mesh[MIN]==0: return MESH[MIN]
 
     def dumpGeom(self, reason, info=''):
-        print('{:24} cw[{:6.2f}] ch[{:6.2f}] ww[{:4}] wh[{:4}] wc[{:3}] wr[{:3}] {}'.format(reason, self.cw, self.ch, self.ww, self.wh, self.wc, self.wr, info), file=DBG_FILE)
+        print('{:24} w[{:6.2f}] h[{:6.2f}] ww[{:4}] wh[{:4}] nc[{:3}] nr[{:3}] {}'.format(reason, self.w, self.h, self.ww, self.wh, self.nc, self.nr, info), file=DBG_FILE)
 
-    def _initGrid(self, dbg=1):
-        self.lineGroup = self._initGroup(2)
-        self.lineGroup = None
-        c, r, ww, wh, sk = self.wc, self.wr, self.ww, self.wh, self.shapeKey
-        mesh, color    = [1, 5, 25], self.DEAD[0]
-        sd            = self.shapes[sk][0]
+    def _alignGrid(self):
+        sd            = self.shapes[self.shapeKey][0]
         sc,   sr      = len(sd[0]), len(sd)
         m2sc, m2sr    = sc % 2, sr % 2
-        m2c,   m2r    =  c % 2,  r % 2
-        if   m2sc    == 1 and m2c == 0: c += 1
-        elif m2sc    == 0 and m2c == 1: c -= 1
-        if   m2sr    == 1 and m2r == 0: r += 1
-        elif m2sr    == 0 and m2r == 1: r -= 1
-        print('_initGrid(BGN)              sc={} sr={} m2sc={} m2sr={} m2c={} m2r={} sk[{}]'.format(sc, sr, m2sc, m2sr, m2c, m2r, sk), file=DBG_FILE)
-#        self.cw = self.ww / self.wc
-#        _ww, _wh, ww, wh, w, h, nc, nr = self._initGeom()
-        self.wc,  self.wr = c, r
-        self.ww,  self.wh = ww, wh
-        self.cw, self.ch = self.ww / self.wc, self.wh / self.wr
-        w,   h  = self.cw,  self.ch
-        x,   y  = self.x,   self.y
-        self.dumpGeom('addGrid() nest list comp', 'x={:6.2f} y={:6.2f} sk[{}]'.format(x, y, sk))
-        self.data, self.cells = zip(*[map(list, zip(*[[0, pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j)%self.ncolors], batch=self.batch)] for i in range(c)])) for j in range(r)])
+        m2c,  m2r     = self.nc % 2,    self.nr % 2
+        if   m2sc    == 1 and m2c == 0: self.nc += 1
+        elif m2sc    == 0 and m2c == 1: self.nc -= 1
+        if   m2sr    == 1 and m2r == 0: self.nr += 1
+        elif m2sr    == 0 and m2r == 1: self.nr -= 1
+        print('_alignGrid()              sc={} sr={} m2sc={} m2sr={} m2c={} m2r={} sk[{}]'.format(sc, sr, m2sc, m2sr, m2c, m2r, self.shapeKey), file=DBG_FILE)
+        return self.nc, self.nr
+
+    def _initGrid(self, dbg=1):
+        self.cellGroup, self.lineGroup = self._initGroup(0), self._initGroup(1)
+        mesh, color    = [1, 5, 25], self.DEAD[0]
+        self.nc, self.nr = self._alignGrid()
+        x, y, w, h, ww, wh, nc, nr = self._geom()
+        self.dumpGeom('_initGrid() nest list comp', 'x={:6.2f} y={:6.2f} sk[{}]'.format(x, y, self.shapeKey))
+        self.data, self.cells = zip(*[map(list, zip(*[[0, pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j)%self.ncolors], batch=self.batch, group=self.cellGroup)] for i in range(nc)])) for j in range(nr)])
         self.cells[0][0].color = (255, 127, 127)
-        if c % 2 == 0:
-            p = fri(c/2) % mesh[len(mesh)-1]
-            if dbg: print('_initGrid() c={}=Even p={}'.format(c, p), file=DBG_FILE)
-            for i in range(c+1):
-                x1, x2, y1, y2 = i*w, i*w, 0, r*h
+        if nc % 2 == 0:
+            p = fri(nc/2) % mesh[len(mesh)-1]
+            if dbg: print('_initGrid() c={}=Even p={}'.format(nc, p), file=DBG_FILE)
+            for i in range(nc+1):
+                x1, x2, y1, y2 = i*w, i*w, 0, nr*h
                 color = self.getMeshColor(i, p, mesh)
                 self.clines.append(pyglet.shapes.Line(x1, y1, x2, y2, width=1, color=color, batch=self.batch, group=self.lineGroup))
                 if dbg: print('i=[{:3}] x1={:7.2f} y1={:7.2f} x2={:7.2f} y2={:7.2f}'.format(i, x1, y1, x2, y2), file=DBG_FILE)
         else:
-            p = fri(c/2-1)
-            if dbg: print('_initGrid() c={}=Odd p={}'.format(c, p), file=DBG_FILE)
-            for i in range(fri(c/2)):
-                x1, x2, y1, y2 = i*w, i*w, 0, r*h
+            p = fri(nc/2-1)
+            if dbg: print('_initGrid() c={}=Odd p={}'.format(nc, p), file=DBG_FILE)
+            for i in range(fri(nc/2)):
+                x1, x2, y1, y2 = i*w, i*w, 0, nr*h
                 color = self.getMeshColor(i, p, mesh)
                 self.clines.append(pyglet.shapes.Line(x1, y1, x2, y2, width=1, color=color, batch=self.batch, group=self.lineGroup))
                 if dbg: print('i=[{:3}] x1={:7.2f} y1={:7.2f} x2={:7.2f} y2={:7.2f}'.format(i, x1, y1, x2, y2), file=DBG_FILE)
-            p = fri(c/2)
-            if dbg: print('_initGrid() c={}=Odd p={}'.format(c, p), file=DBG_FILE)
-            for i in range(fri(c/2), c+1):
-                x1, x2, y1, y2 = i*w, i*w, 0, r*h
+            p = fri(nc/2)
+            if dbg: print('_initGrid() c={}=Odd p={}'.format(nc, p), file=DBG_FILE)
+            for i in range(fri(nc/2), nc+1):
+                x1, x2, y1, y2 = i*w, i*w, 0, nr*h
                 color = self.getMeshColor(i, p, mesh)
                 self.clines.append(pyglet.shapes.Line(x1, y1, x2, y2, width=1, color=color, batch=self.batch, group=self.lineGroup))
                 if dbg: print('i=[{:3}] x1={:7.2f} y1={:7.2f} x2={:7.2f} y2={:7.2f}'.format(i, x1, y1, x2, y2), file=DBG_FILE)
-        if r % 2 == 0:
-            q = fri(r/2) % mesh[len(mesh)-1]
-            if dbg: print('_initGrid() r={}=Even q={}'.format(r, q), file=DBG_FILE)
-            for j in range(r+1):
-                x1, x2, y1, y2 = 0, c*w, j*h, j*h
+        if nr % 2 == 0:
+            q = fri(nr/2) % mesh[len(mesh)-1]
+            if dbg: print('_initGrid() r={}=Even q={}'.format(nr, q), file=DBG_FILE)
+            for j in range(nr+1):
+                x1, x2, y1, y2 = 0, nc*w, j*h, j*h
                 color = self.getMeshColor(j, q, mesh)
                 self.rlines.append(pyglet.shapes.Line(x1, y1, x2, y2, width=1, color=color, batch=self.batch, group=self.lineGroup))
                 if dbg: print('j=[{:3}] x1={:7.2f} y1={:7.2f} x2={:7.2f} y2={:7.2f}'.format(j, x1, y1, x2, y2), file=DBG_FILE)
         else:
-            q = fri(r/2-1)
-            if dbg: print('_initGrid() r={}=Odd q={}'.format(r, q), file=DBG_FILE)
-            for j in range(fri(r/2)):
-                x1, x2, y1, y2 = 0, c*w, j*h, j*h
+            q = fri(nr/2-1)
+            if dbg: print('_initGrid() r={}=Odd q={}'.format(nr, q), file=DBG_FILE)
+            for j in range(fri(nr/2)):
+                x1, x2, y1, y2 = 0, nc*w, j*h, j*h
                 color = self.getMeshColor(j, q, mesh)
                 self.rlines.append(pyglet.shapes.Line(x1, y1, x2, y2, width=1, color=color, batch=self.batch, group=self.lineGroup))
                 if dbg: print('j=[{:3}] x1={:7.2f} y1={:7.2f} x2={:7.2f} y2={:7.2f}'.format(j, x1, y1, x2, y2), file=DBG_FILE)
-            q = fri(r/2)
-            if dbg: print('_initGrid() r={}=odd q={}'.format(r, q), file=DBG_FILE)
-            for j in range(fri(r/2), r+1):
-                x1, x2, y1, y2 = 0, c*w, j*h, j*h
+            q = fri(nr/2)
+            if dbg: print('_initGrid() r={}=odd q={}'.format(nr, q), file=DBG_FILE)
+            for j in range(fri(nr/2), nr+1):
+                x1, x2, y1, y2 = 0, nc*w, j*h, j*h
                 color = self.getMeshColor(j, q, mesh)
                 self.rlines.append(pyglet.shapes.Line(x1, y1, x2, y2, width=1, color=color, batch=self.batch, group=self.lineGroup))
                 if dbg: print('j=[{:3}] x1={:7.2f} y1={:7.2f} x2={:7.2f} y2={:7.2f}'.format(j, x1, y1, x2, y2), file=DBG_FILE)
 
-#    def _initGeom(self):
-#        return self.ww, self.wh, self.ww, self.wh, self.cw, self.ch, self.wc, self.wr
-##        return self._ww, self._wh, self.ww, self.wh, self.w, self.h, self.nc, self.nr
+    def _geom(self):
+        self.w, self.h = self.ww/self.nc, self.wh/self.nr
+        return self.x, self.y, self.w, self.h, self.ww, self.wh, self.nc, self.nr
 
     def on_resize(self, width, height, dbg=1):
         super().on_resize(width, height)
         self.ww, self.wh  = width, height
-        self.cw, self.ch = self.ww / self.wc, self.wh / self.wr
-        x,  y   = self.x,   self.y
+        x, y, w, h, ww, wh, nc, nr = self._geom()
         if dbg:   self.dumpGeom('on_resize(BGN)', 'x={:6.2f} y={:6.2f}'.format(x, y))
-        ww, wh  = self.ww, self.wh
-        w, h    = self.cw, self.ch
-        c, r    = self.wc, self.wr
-        for j in range(r):
-            for i in range(c):
+        for j in range(nr):
+            for i in range(nc):
                 self.cells[j][i].position = i*w+x, wh-h-j*h+y
                 self.cells[j][i].width    = w
                 self.cells[j][i].height   = h
-        for i in range(c+1):  # len(self.clines)):
-            self.clines[i].position = i*w+x, y, i*w+x, r*h+y
+        for i in range(nc+1):  # len(self.clines)):
+            self.clines[i].position = i*w+x, y, i*w+x, nr*h+y
             if dbg: print('i={:4} w={:6.2f} x={:6.2f} i*w={:7.2f} {:4} i*w+x={:7.2f} {:4}'.format(i, w, x, i*w, fri(i*w), i*w+x, fri(i*w+x)), file=DBG_FILE)
         if dbg: print(file=DBG_FILE)
-        for j in range(r+1):  # len(self.rlines)):
-            self.rlines[j].position = x, j*h+y, c*w+x, j*h+y
+        for j in range(nr+1):  # len(self.rlines)):
+            self.rlines[j].position = x, j*h+y, nc*w+x, j*h+y
             if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
         if dbg: self.dumpGeom('on_resize(END)', 'x={:6.2f} y={:6.2f}'.format(x, y))
 
@@ -242,8 +224,8 @@ class Life(pyglet.window.Window):
 
     def updateDataCells(self):
         data = copy.deepcopy(self.data)
-        for r in range(self.wr-1, -1, -1):
-            for c in range(self.wc):
+        for r in range(self.nr-1, -1, -1):
+            for c in range(self.nc):
                 self.updateDataCell(c, r, data)
         self.data = data
 
@@ -261,11 +243,11 @@ class Life(pyglet.window.Window):
     def updateStats(self):
         assert self.gen >= 0
         assert self.pop >= 0
-        assert self.wr  == len(self.cells)
-        assert self.wc  == len(self.cells[0])
+        assert self.nr  == len(self.cells)
+        assert self.nc  == len(self.cells[0])
         self.stats['S_GEN']  = self.gen
         self.stats['S_POP']  = self.pop
-        self.stats['S_AREA'] = self.wr * self.wc
+        self.stats['S_AREA'] = self.nr * self.nc
         self.stats['S_DENS'] = 100 * self.stats['S_POP']   / self.stats['S_AREA']
         if self.stats['S_POP'] > 0:  self.stats['S_IDENS'] = self.stats['S_AREA'] / self.stats['S_POP']
         else:                        self.stats['S_IDENS'] = -1.0
@@ -303,8 +285,8 @@ class Life(pyglet.window.Window):
     def calcPop(self, dbg=0):
         if dbg: print('calcPop(BGN) pop={}'.format(self.pop), file=DBG_FILE)
         self.pop = 0
-        for r in range(self.wr):
-            for c in range(self.wc):
+        for r in range(self.nr):
+            for c in range(self.nc):
                 if self.data[r][c] == 1: self.pop += 1
         if dbg: print('calcPop(END) pop={}'.format(self.pop), file=DBG_FILE)
 
@@ -356,7 +338,7 @@ class Life(pyglet.window.Window):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
-                n += self.data[(r+j+self.wr)%self.wr][(c+i+self.wc)%self.wc]
+                n += self.data[(r+j+self.nr)%self.nr][(c+i+self.nc)%self.nc]
         n -= self.data[r][c]
         return n
 
@@ -364,12 +346,12 @@ class Life(pyglet.window.Window):
         n = 0
         for j in range(-1, 2):
             for i in range(-1, 2):
-                if 0 <= r + j < self.wr and 0 <= c + i < self.wc:
+                if 0 <= r + j < self.nr and 0 <= c + i < self.nc:
                     n += self.data[r+j][c+i]
         n -= self.data[r][c]
         return n
 
-    def displayStats(self, dbg=0):  # [{:3}x{:3}]=[{:7,}]   # , self.wc, self.wr, self.stats['S_AREA']
+    def displayStats(self, dbg=0):  # [{:3}x{:3}]=[{:7,}]   # , self.nc, self.nr, self.stats['S_AREA']
         txt = 'Gen[{:4,}] Pop[{:6,}] Done[{:4,}] Undone[{:4,}] Dens[{:6.3}]% IDens[{:7,.0f}] FPS[{:6,.0f}] IFPS[{:6.3}] shapeKey[{}]'.\
             format(self.stats['S_GEN'], self.stats['S_POP'], len(self.done), len(self.undone),
                    self.stats['S_DENS'], self.stats['S_IDENS'], self.stats['S_FPS'], self.stats['S_IFPS'], self.shapeKey)
@@ -417,8 +399,8 @@ class Life(pyglet.window.Window):
         self.gen,  self.pop    = 0, 0
         self.done, self.undone = [], []
         self.stats = {}
-        for r in range(self.wr):
-            for c in range(self.wc):
+        for r in range(self.nr):
+            for c in range(self.nc):
                 self.data[r][c] = 0
                 self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
         self.updateStats()
@@ -427,7 +409,7 @@ class Life(pyglet.window.Window):
     def reset(self):
         self.printInfo('reset(BGN)')
         self.erase()
-        self.addShape(self.wc//2, self.wr//2, self.shapeKey)
+        self.addShape(self.nc//2, self.nr//2, self.shapeKey)
         self.printInfo('reset(END)')
 
     def toggleWrapEdges(self, dbg=0):
@@ -464,8 +446,8 @@ class Life(pyglet.window.Window):
 ####################################################################################################
     def updateCellColors(self, dbg=0):
         if dbg: print('updateCellColors(BGN) ncolors={}'.format(self.ncolors), file=DBG_FILE)
-        for j in range(self.wr):
-            for i in range(self.wc):
+        for j in range(self.nr):
+            for i in range(self.nc):
                 if self.data[j][i] == 0: self.cells[j][i].color = self.DEAD[(i+j) % self.ncolors]
                 else:                    self.cells[j][i].color = self.ALIVE[0]
         if dbg: print('updateCellColors(END) ncolors={}'.format(self.ncolors), file=DBG_FILE)
@@ -478,8 +460,8 @@ class Life(pyglet.window.Window):
             self.data = self.done.pop()
             self.undone.append(self.data)
             self.pop = 0
-            for r in range(self.wr):
-                for c in range(self.wc):
+            for r in range(self.nr):
+                for c in range(self.nc):
                     if   self.data[r][c] == 0: self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
                     elif self.data[r][c] == 1: self.cells[r][c].color = self.ALIVE[0]; self.pop += 1
                     else:                      print('undo() ERROR Illegal Value data[{}][{}]={}'.format(r, c, self.data[r][c]), file=DBG_FILE); exit()
@@ -511,8 +493,8 @@ class Life(pyglet.window.Window):
     def steadyState(self):
         if self.prev is None:                          return False
         if self.pop != self.stats['S_POP']:            return False
-        for j in range(self.wr):
-            for i in range(self.wc):
+        for j in range(self.nr):
+            for i in range(self.nc):
                 if self.prev[j][i] != self.data[j][i]: return False
         print('steadyState() Data is Unchanged'.format(), file=DBG_FILE)
         self.prev, self.genX = None, -1
@@ -571,7 +553,7 @@ class Life(pyglet.window.Window):
                 self.buffer += chr(symbol)
                 if dbg: print('on_key_press()         a(symbol)={!a} buffer={}'.format(symbol, self.buffer), file=DBG_FILE)
         elif symbol == pygwink.Q and modifiers == pygwink.MOD_CTRL:  exit()
-        elif symbol == pygwink.A and modifiers == pygwink.MOD_CTRL:  self.addShape(self.wc//2, self.wr//2, self.shapeKey)
+        elif symbol == pygwink.A and modifiers == pygwink.MOD_CTRL:  self.addShape(self.nc//2, self.nr//2, self.shapeKey)
         elif symbol == pygwink.C and modifiers == pygwink.MOD_CTRL:  self.toggleNColors()
         elif symbol == pygwink.E and modifiers == pygwink.MOD_CTRL:  self.erase()
         elif symbol == pygwink.F and modifiers == pygwink.MOD_CTRL:  self.toggleFullScreen()
@@ -591,7 +573,7 @@ class Life(pyglet.window.Window):
 
     def on_mouse_release(self, x, y, button, modifiers):  # pyglet.window.mouse.MIDDLE #pyglet.window.mouse.LEFT #pyglet.window.mouse.RIGHT
         y = self.wh - y
-        c, r = int(x / self.cw), int(y / self.ch)
+        c, r = int(x / self.w), int(y / self.h)
 #        self.dumpGeom('on_mouse_release(BGN)', 'x={:4} y={:4} b={} m={} c={} r={} data[r][c]={}'.format(x, y, button, modifiers, c, r, self.data[r][c]))
         self.toggleCell(c, r)
 #        self.dumpGeom('on_mouse_release(END)', 'x={:4} y={:4} b={} m={} c={} r={} data[r][c]={}'.format(x, y, button, modifiers, c, r, self.data[r][c]))

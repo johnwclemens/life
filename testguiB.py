@@ -1,7 +1,25 @@
 import sys, os, math
 sys.path.insert(0, os.path.abspath('C:/Python36/my/lib/pyglet'))
 import pyglet
+#import pyglet.text
 
+class TestGuiB(pyglet.window.Window):
+    def __init__(self):
+        ww, wh = 1000, 600
+        super(TestGuiB, self).__init__()  # ww, wh, resizable=True)  # , visible=False)
+        self.label = pyglet.text.Label('ABC')
+#        self.set_visible()
+
+    def on_draw(self):
+        self.clear()
+        self.label.draw()
+
+if __name__ == '__main__':
+    test = TestGuiB()
+#    test = pyglet.window.Window(1000, 600, resizable=True)
+    pyglet.app.run()
+
+'''
 def fri(f): return int(math.floor(f+0.5))
 
 class TestGuiB(pyglet.window.Window):
@@ -164,3 +182,4 @@ class TestGuiB(pyglet.window.Window):
 if __name__ == '__main__':
     life = TestGuiB()
     pyglet.app.run()
+'''
