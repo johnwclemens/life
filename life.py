@@ -1,5 +1,6 @@
 import sys, os, copy, math
 import pyglet
+import pyglet.shapes as pygshp
 import pyglet.window.key as pygwink
 sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
@@ -32,14 +33,15 @@ class Life(pyglet.window.Window):
         self.shapes,      self.stats     =  {},  {}
         self.gridLines,   self.dirty     = True, False
         self.x,           self.y         =  0,   0
+        self.foo = 0
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.nc         =  200  # 100  # 51  # 221  # 11  # 101
-        self.nr         =  120  #  50  # 31  # 121  #  7  #  57
+        self.nc         =   25  # 200  # 51  # 221  # 11  # 101
+        self.nr         =   15  #  50  # 31  # 121  #  7  #  57
         self.ww         = 1000  # 1900  # 950
         self.wh         =  600  # 1100  # 590
         self.fullScreen = False
-        self.getNNCount = self.getNNCountWrap
-        self.shapeKey   = 'TestOddOdd'  # 'MyShape_07'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.getNNCount = self.getNNCountHard #getNNCountWrap
+        self.shapeKey   = 'MyShape_Quad_GliderC' #'MyShape_Glider_1A' #'119P4H1V0' #'TestOddOdd'  # 'MyShape_07'  # 'TestOddOdd'  # 'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.nc         = int(self.argMap['c'][0])
@@ -62,10 +64,13 @@ class Life(pyglet.window.Window):
         if self.fullScreen:  self.set_fullscreen(self.fullScreen)
 #        self.ww, self.wh = self.get_size()
         self.useOrderedGroup = True
+        self.getNNCount = self.getNNCountHard
         self.parse()
         self._initGrid()
+#        self.addShape(1, 1, self.shapeKey)
         self.addShape(self.nc/2, self.nr/2, self.shapeKey)
         self.set_visible()
+        print('_init() GLIDERS={}'.format(GLIDERS), file=DBG_FILE)
 
     def _initGroup(self, order=0, parent=None):
         if self.useOrderedGroup: return pyglet.graphics.OrderedGroup(order, parent)
@@ -97,10 +102,10 @@ class Life(pyglet.window.Window):
     def _initGrid(self, dbg=1):
         self.cellGroup, self.lineGroup = self._initGroup(0), self._initGroup(1)
         mesh, color    = [1, 5, 25], self.DEAD[0]
-        self.nc, self.nr = self._alignGrid()
+#        self.nc, self.nr = self._alignGrid()
         x, y, w, h, ww, wh, nc, nr = self._geom()
         self.dumpGeom('_initGrid() nest list comp', 'x={:6.2f} y={:6.2f} sk[{}]'.format(x, y, self.shapeKey))
-        self.data, self.cells = zip(*[map(list, zip(*[[0, pyglet.shapes.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j)%self.ncolors], batch=self.batch, group=self.cellGroup)] for i in range(nc)])) for j in range(nr)])
+        self.data, self.cells = zip(*[map(list, zip(*[[0, pygshp.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j)%self.ncolors], batch=self.batch, group=self.cellGroup)] for i in range(nc)])) for j in range(nr)])
         self.cells[0][0].color = (255, 127, 127)
         if nc % 2 == 0:
             p = fri(nc/2) % mesh[len(mesh)-1]
@@ -185,7 +190,7 @@ class Life(pyglet.window.Window):
         print('info1={}'.format(v[1]), file=DBG_FILE)
         if v[2]: print('info2={}'.format(v[2]), file=DBG_FILE)
         if v[3]: print('info3={}'.format(v[3]), file=DBG_FILE)
-        if data is None: print('addShape data={} is None Nothing to Add'.format(data), file=DBG_FILE); return
+        if data is None: print('addShape data={} is None Nothing to Add - returning'.format(data), file=DBG_FILE); return
         for j in range(h):
             print('    ', file=DBG_FILE, end='')
             for i in range(w):
@@ -239,6 +244,25 @@ class Life(pyglet.window.Window):
             else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]; self.pop -= 1
         elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE[0];                   self.pop += 1
         else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
+
+    # flatten 2-D to 1-D?
+
+    def getNNCountHard(self, c, r):
+        n = 0
+        for j in range(-1, 2):
+            for i in range(-1, 2):
+                if 0 <= r + j < self.nr and 0 <= c + i < self.nc:
+                    n += self.data[r+j][c+i]
+        n -= self.data[r][c]
+        return n
+
+    def getNNCountWrap(self, c, r):
+        n = 0
+        for j in range(-1, 2):
+            for i in range(-1, 2):
+                n += self.data[(r+j+self.nr)%self.nr][(c+i+self.nc)%self.nc]
+        n -= self.data[r][c]
+        return n
 
     def updateStats(self):
         assert self.gen >= 0
@@ -334,23 +358,6 @@ class Life(pyglet.window.Window):
         print('parse(END) len(shapes)={}'.format(len(self.shapes)), file=DBG_FILE)
         if dbg: self.printShapes()
 
-    def getNNCountWrap(self, c, r):
-        n = 0
-        for j in range(-1, 2):
-            for i in range(-1, 2):
-                n += self.data[(r+j+self.nr)%self.nr][(c+i+self.nc)%self.nc]
-        n -= self.data[r][c]
-        return n
-
-    def getNNCountHard(self, c, r):
-        n = 0
-        for j in range(-1, 2):
-            for i in range(-1, 2):
-                if 0 <= r + j < self.nr and 0 <= c + i < self.nc:
-                    n += self.data[r+j][c+i]
-        n -= self.data[r][c]
-        return n
-
     def displayStats(self, dbg=0):  # [{:3}x{:3}]=[{:7,}]   # , self.nc, self.nr, self.stats['S_AREA']
         txt = 'Gen[{:4,}] Pop[{:6,}] Done[{:4,}] Undone[{:4,}] Dens[{:6.3}]% IDens[{:7,.0f}] FPS[{:6,.0f}] IFPS[{:6.3}] shapeKey[{}]'.\
             format(self.stats['S_GEN'], self.stats['S_POP'], len(self.done), len(self.undone),
@@ -375,17 +382,17 @@ class Life(pyglet.window.Window):
         print('printShapes(END) len(shapes)={} len(noneKeys)={} len(valKeys)={}'.format(len(self.shapes), len(noneKeys), len(dataKeys)), file=DBG_FILE)
 
     @staticmethod
-    def printData(data, reason=''):
+    def printData(data, reason='', dbg=0):
         rows, cols = len(data), len(data[0])
         area = rows * cols
-        print('{:24} data[{}x{}={:,}]'.format(reason, rows, cols, area), file=DBG_FILE)
+        if dbg: print('{:24} data[{}x{}={:,}]'.format(reason, rows, cols, area), file=DBG_FILE)
         for r in range(rows):
             for c in range(cols):
                 if   data[r][c] == 0: print(' ', file=DBG_FILE, end='')
                 elif data[r][c] == 1: print('X', file=DBG_FILE, end='')
                 else:                 print('printData() ERROR Illegal Value data[{}][{}]={}'.format(r, c, data[r][c]), file=DBG_FILE); exit()
             print(file=DBG_FILE)
-        print('{:24} data[{}x{}={:,}]'.format(reason, rows, cols, area), file=DBG_FILE)
+        if dbg: print('{:24} data[{}x{}={:,}]'.format(reason, rows, cols, area), file=DBG_FILE)
 
     def printInfo(self, reason, info=''):
         print('{:24} gen[{:4,}] pop[{:6,}] done[{:4,}] undone[{:4,}] {}'.format(reason, self.gen, self.pop, len(self.done), len(self.undone), info), file=DBG_FILE)
@@ -395,10 +402,10 @@ class Life(pyglet.window.Window):
         print('flush()', file=DBG_FILE, flush=True)
 
     def erase(self):
-        self.printInfo('erase(BGN)')
         self.gen,  self.pop    = 0, 0
         self.done, self.undone = [], []
         self.stats = {}
+        self.printInfo('erase(BGN)')
         for r in range(self.nr):
             for c in range(self.nc):
                 self.data[r][c] = 0
@@ -453,8 +460,9 @@ class Life(pyglet.window.Window):
         if dbg: print('updateCellColors(END) ncolors={}'.format(self.ncolors), file=DBG_FILE)
 
     def undo(self, dt=-1.0, reason=''):
-        if self.dirty: self.printData(self.data, 'dirty undo()'); self.dirty = False
+#        self.gen -= 1
         self.printInfo('undo(BGN)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+        if self.dirty: self.printData(self.data, 'dirty undo()'); self.dirty = False
         if self.gen > 0 and len(self.done) > 0:
             self.gen -= 1
             self.data = self.done.pop()
@@ -473,13 +481,14 @@ class Life(pyglet.window.Window):
         else: print('undo() Nothing to Undo done[{}]'.format(len(self.done)), file=DBG_FILE)
         self.printInfo('undo(END)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
 
-    def update(self, dt=-1.0, reason='', dbg=0):
-        if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
+    def update(self, dt=-1.0, reason='', dbg=1):
+        self.gen += 1
         if dbg: self.printInfo('update(BGN)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
-        if self.pop == 0: print('update() pop={} Nothing Left Alive'.format(self.pop), file=DBG_FILE); return
+        self.sweep()
+        if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
+        if self.pop == 0: print('update() pop={} Nothing Left Alive - returning'.format(self.pop), file=DBG_FILE); return
         if self.steadyState(): self.stop(self.update, 'steadyState {}'.format(reason))
         self.prev = copy.deepcopy(self.data)
-        self.gen += 1
         self.done.append(self.data)
         self.updateDataCells()
         if dbg: self.printInfo('update()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
@@ -489,6 +498,48 @@ class Life(pyglet.window.Window):
         self.updateStats()
         if dbg: self.printData(self.data, 'update()')
         if dbg: self.printInfo('update(END)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+
+    def sweep(self):
+#        print('sweep(BGN)', file=DBG_FILE)
+        for i in range(1, self.nc-1):
+#            print('sweep() i={}'.format(i), file=DBG_FILE)
+            if self.isGlider(i, 1):         self.zap3x3(i, 1)
+            if self.isGlider(i, self.nr-2): self.zap3x3(i, self.nr-2)
+        for j in range(1, self.nr-1):
+#            print('sweep() j={}'.format(j), file=DBG_FILE)
+            if self.isGlider(1, j):         self.zap3x3(1, j)
+            if self.isGlider(self.nc-2, j): self.zap3x3(self.nc-2, j)
+
+    def isGlider(self, c, r):
+        d = self.get3x3(c, r)
+#        self.dump3x3(c, r)
+        if d in GLIDERS: print('isGlider(True) data[{}][{}]={}'.format(r, c, d), file=DBG_FILE); return True
+#        else:            print('isGlider(False) data[{}][{}]={}'.format(r, c, d), file=DBG_FILE); return False
+
+    def get3x3(self, c, r): #        return [[d[r+j][c+i] for j in range(-1, 2)] for i in range(-1, 2)]
+#        print('get3x3(BGN) c={} r={} d[r][c]={}'.format(c, r, d[r][c]), file=DBG_FILE)
+        ll = []
+        for j in range(-1, 2):
+            tmp = []
+            for i in range(-1, 2):
+                tmp.append(self.data[r+j][c+i])
+            ll.append(tmp)
+#        print('get3x3(END) c={} r={} 3x3={}'.format(c, r, ll), file=DBG_FILE)
+        return ll
+
+    def dump3x3(self, reason, c, r):
+        print('{} c={}, r={}'.format(reason, c, r), file=DBG_FILE)
+        for j in range(-1, 2):
+            for i in range(-1, 2):
+                print('{:4}'.format(self.data[r+j][c+i]), file=DBG_FILE, end=',')
+            print(''.format(), file=DBG_FILE)
+
+    def zap3x3(self, c, r):
+        self.dump3x3('zap3x3()', c, r)
+#        print('zap3x3() c={} r={}'.format(c, r), file=DBG_FILE)
+        for j in range(-1, 2):
+            for i in range(-1, 2):
+                self.data[r+j][c+i] = 0
 
     def steadyState(self):
         if self.prev is None:                          return False
@@ -515,10 +566,10 @@ class Life(pyglet.window.Window):
         self.buffer = ''
         reason = 'gen={} genX={}'.format(self.gen, self.genX)
         if   dbg:           print('absGenX(BGN)             {}'.format(reason), file=DBG_FILE)
-        if   self.genX < 0: print('absGenX() ERROR @ {} Negative Values Are Not Allowed'.format(reason), file=DBG_FILE); return
+        if   self.genX < 0: print('absGenX() ERROR @ {} Negative Values Are Not Allowed - returning'.format(reason), file=DBG_FILE); return
         if   self.genX > self.gen: func = self.update
         elif self.genX < self.gen: func = self.undo
-        else:               print('absGenX() SKIP @ {} Already Equals gen={}'.format(reason, self.gen), file=DBG_FILE); return
+        else:               print('absGenX() SKIP @ {} Already Equals gen={} - returning'.format(reason, self.gen), file=DBG_FILE); return
         self.run(func, self.period, reason='absGenX() {}'.format(reason))
         if   dbg:           print('absGenX(END)             {}'.format(reason), file=DBG_FILE)
 
@@ -528,10 +579,10 @@ class Life(pyglet.window.Window):
         self.genX = self.gen + genR
         reason = 'gen={} genR={} genX={}'.format(self.gen, genR, self.genX)
         if dbg:             print('relGenX(BGN)             {}'.format(reason), file=DBG_FILE)
-        if   self.genX < 0: print('relGenX() ERROR @ {} Negative Values Are Not Allowed'.format(reason), file=DBG_FILE); return
+        if   self.genX < 0: print('relGenX() ERROR @ {} Negative Values Are Not Allowed - returning'.format(reason), file=DBG_FILE); return
         if   self.genX > self.gen: func = self.update
         elif self.genX < self.gen: func = self.undo
-        else:               print('relGenX() SKIP @ genR is Zero {}'.format(reason), file=DBG_FILE); return
+        else:               print('relGenX() SKIP @ genR is Zero {} - returning'.format(reason), file=DBG_FILE); return
         self.run(func, self.period, reason='relGenX() {}'.format(reason))
         if dbg:             print('relGenX(END)             {}'.format(reason), file=DBG_FILE)
 
@@ -584,5 +635,27 @@ class Life(pyglet.window.Window):
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log.txt", 'w')
+    GLIDERS = [[[0, 1, 0], [1, 0, 0], [1, 1, 1]], [[1, 0, 1], [1, 1, 0], [0, 1, 0]], [[1, 0, 0], [1, 0, 1], [1, 1, 0]], [[0, 0, 1], [1, 1, 0], [0, 1, 1]],
+               [[0, 0, 1], [1, 0, 1], [0, 1, 1]], [[1, 0, 0], [0, 1, 1], [1, 1, 0]], [[0, 1, 0], [0, 0, 1], [1, 1, 1]], [[1, 0, 1], [0, 1, 1], [0, 1, 0]],
+               [[1, 1, 1], [0, 0, 1], [0, 1, 0]], [[0, 1, 0], [0, 1, 1], [1, 0, 1]], [[0, 1, 1], [1, 0, 1], [0, 0, 1]], [[1, 1, 0], [0, 1, 1], [1, 0, 0]],
+               [[1, 1, 0], [1, 0, 1], [1, 0, 0]], [[0, 1, 1], [1, 1, 0], [0, 0, 1]], [[1, 1, 1], [1, 0, 0], [0, 1, 0]], [[0, 1, 0], [1, 1, 0], [1, 0, 1]]]
     life = Life()
     pyglet.app.run()
+
+"""
+010 101 100 001
+100 110 101 110
+111 010 110 011
+
+001 100 010 101
+101 011 001 011
+011 110 111 010
+
+111 010 011 110
+001 011 101 011
+010 101 001 100
+
+110 011 111 010
+101 110 100 110
+100 001 010 101
+"""
