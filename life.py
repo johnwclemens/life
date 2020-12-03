@@ -33,15 +33,14 @@ class Life(pyglet.window.Window):
         self.shapes,      self.stats     =  {},  {}
         self.gridLines,   self.dirty     = True, False
         self.x,           self.y         =  0,   0
-        self.foo = 0
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.nc         =   25  # 200  # 51  # 221  # 11  # 101
-        self.nr         =   15  #  50  # 31  # 121  #  7  #  57
+        self.nc         =   50  # 200  # 51  # 221  # 11  # 101
+        self.nr         =   30  #  50  # 31  # 121  #  7  #  57
         self.ww         = 1000  # 1900  # 950
         self.wh         =  600  # 1100  # 590
         self.fullScreen = False
         self.getNNCount = self.getNNCountHard #getNNCountWrap
-        self.shapeKey   = 'MyShape_Quad_GliderC' #'MyShape_Glider_1A' #'119P4H1V0' #'TestOddOdd'  # 'MyShape_07'  # 'TestOddOdd'  # 'Gosper glider gun'
+        self.shapeKey   = 'Gosper glider gun' #1-2-3-4' #'MyShape_Quad_GliderC' #'MyShape_Glider_1A' #'119P4H1V0' #'TestOddOdd'  #'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.nc         = int(self.argMap['c'][0])
@@ -62,13 +61,18 @@ class Life(pyglet.window.Window):
         print('fullScreen={}'.format(self.fullScreen), file=DBG_FILE)
         self.set_size(self.ww, self.wh)
         if self.fullScreen:  self.set_fullscreen(self.fullScreen)
-#        self.ww, self.wh = self.get_size()
+        self.ww, self.wh = self.get_size()
+        self._geom()
+        self.dumpGeom('_init() fullScreen={}'.format(self.fullScreen))
         self.useOrderedGroup = True
         self.getNNCount = self.getNNCountHard
         self.parse()
         self._initGrid()
-#        self.addShape(1, 1, self.shapeKey)
-        self.addShape(self.nc/2, self.nr/2, self.shapeKey)
+#        self.addShape(self.nc/2, self.nr/2, self.shapeKey)
+        self.addShape(self.nc/2-2, self.nr/2-4, 'MyShape_Glider_1A')
+        self.addShape(1,                     1, 'MyShape_Glider_1A')
+        self.addShape(self.nc-2,   self.nr-2,   'MyShape_Glider_2A')
+        self.addShape(self.nc/2+2, self.nr/2-4, 'MyShape_Glider_2A')
         self.set_visible()
         print('_init() GLIDERS={}'.format(GLIDERS), file=DBG_FILE)
 
@@ -176,6 +180,14 @@ class Life(pyglet.window.Window):
             self.rlines[j].position = x, j*h+y, nc*w+x, j*h+y
             if dbg: print('j={:4} h={:6.2f} y={:6.2f} j*h={:7.2f} {:4} j*h+y={:7.2f} {:4}'.format(j, h, y, j*h, fri(j*h), j*h+y, fri(j*h+y)), file=DBG_FILE)
         if dbg: self.dumpGeom('on_resize(END)', 'x={:6.2f} y={:6.2f}'.format(x, y))
+
+    def on_mouse_release(self, x, y, button, modifiers):  # pyglet.window.mouse.MIDDLE #pyglet.window.mouse.LEFT #pyglet.window.mouse.RIGHT
+#        self.ww, self.wh = self.get_size()
+        yy = self.wh - y
+        c, r = int(x/self.w), int(yy/self.h)
+        self.dumpGeom('on_mouse_release(BGN)', 'x={:4} y={:4} yy={:4} b={} m={} c={} r={}'.format(x, y, yy, button, modifiers, c, r))
+        self.toggleCell(c, r)
+        self.dumpGeom('on_mouse_release(END)', 'x={:4} y={:4} yy={:4} b={} m={} c={} r={}'.format(x, y, yy, button, modifiers, c, r))
 
     def addShape(self, p, q, key='MyShape_07'):
         v = self.shapes[key]
@@ -465,7 +477,7 @@ class Life(pyglet.window.Window):
         if self.dirty: self.printData(self.data, 'dirty undo()'); self.dirty = False
         if self.gen > 0 and len(self.done) > 0:
             self.gen -= 1
-            self.data = self.done.pop()
+            self.data = copy.deepcopy(self.done.pop())
             self.undone.append(self.data)
             self.pop = 0
             for r in range(self.nr):
@@ -484,12 +496,12 @@ class Life(pyglet.window.Window):
     def update(self, dt=-1.0, reason='', dbg=1):
         self.gen += 1
         if dbg: self.printInfo('update(BGN)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
-        self.sweep()
         if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
         if self.pop == 0: print('update() pop={} Nothing Left Alive - returning'.format(self.pop), file=DBG_FILE); return
         if self.steadyState(): self.stop(self.update, 'steadyState {}'.format(reason))
         self.prev = copy.deepcopy(self.data)
-        self.done.append(self.data)
+        self.done.append(self.prev)
+        self.sweep()
         self.updateDataCells()
         if dbg: self.printInfo('update()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
         if self.gen == self.genX:
@@ -500,43 +512,36 @@ class Life(pyglet.window.Window):
         if dbg: self.printInfo('update(END)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
 
     def sweep(self):
-#        print('sweep(BGN)', file=DBG_FILE)
         for i in range(1, self.nc-1):
-#            print('sweep() i={}'.format(i), file=DBG_FILE)
             if self.isGlider(i, 1):         self.zap3x3(i, 1)
             if self.isGlider(i, self.nr-2): self.zap3x3(i, self.nr-2)
         for j in range(1, self.nr-1):
-#            print('sweep() j={}'.format(j), file=DBG_FILE)
             if self.isGlider(1, j):         self.zap3x3(1, j)
             if self.isGlider(self.nc-2, j): self.zap3x3(self.nc-2, j)
 
     def isGlider(self, c, r):
         d = self.get3x3(c, r)
-#        self.dump3x3(c, r)
         if d in GLIDERS: print('isGlider(True) data[{}][{}]={}'.format(r, c, d), file=DBG_FILE); return True
-#        else:            print('isGlider(False) data[{}][{}]={}'.format(r, c, d), file=DBG_FILE); return False
+        else:            return False
 
-    def get3x3(self, c, r): #        return [[d[r+j][c+i] for j in range(-1, 2)] for i in range(-1, 2)]
-#        print('get3x3(BGN) c={} r={} d[r][c]={}'.format(c, r, d[r][c]), file=DBG_FILE)
-        ll = []
+    def get3x3(self, c, r):
+        table = []
         for j in range(-1, 2):
             tmp = []
             for i in range(-1, 2):
                 tmp.append(self.data[r+j][c+i])
-            ll.append(tmp)
-#        print('get3x3(END) c={} r={} 3x3={}'.format(c, r, ll), file=DBG_FILE)
-        return ll
+            table.append(tmp)
+        return table
 
     def dump3x3(self, reason, c, r):
         print('{} c={}, r={}'.format(reason, c, r), file=DBG_FILE)
         for j in range(-1, 2):
             for i in range(-1, 2):
-                print('{:4}'.format(self.data[r+j][c+i]), file=DBG_FILE, end=',')
+                print(' ' if self.data[r+j][c+i]==0 else 'X', file=DBG_FILE, end='')
             print(''.format(), file=DBG_FILE)
 
     def zap3x3(self, c, r):
         self.dump3x3('zap3x3()', c, r)
-#        print('zap3x3() c={} r={}'.format(c, r), file=DBG_FILE)
         for j in range(-1, 2):
             for i in range(-1, 2):
                 self.data[r+j][c+i] = 0
@@ -592,7 +597,7 @@ class Life(pyglet.window.Window):
         self.dispatch = func
         if dbg: print('register(END)           buffer[{}] dispatch={}'.format(self.buffer, self.dispatch), file=DBG_FILE)
 ####################################################################################################
-    def on_key_press(self, symbol, modifiers, dbg=0):
+    def on_key_press(self, symbol, modifiers, dbg=1):
         super().on_key_press(symbol, modifiers)
         symStr, modStr = pygwink.symbol_string(symbol), pygwink.modifiers_string(modifiers)
         if dbg: print('\non_key_press(BGN)       {:5}    {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modStr, self.dispatch), file=DBG_FILE)
@@ -621,13 +626,6 @@ class Life(pyglet.window.Window):
         elif symbol == pygwink.RIGHT:                                self.update(reason='on_key_press(RIGHT)')
         elif symbol == pygwink.LEFT:                                 self.undo(reason='on_key_press(LEFT)')
         if dbg: print('on_key_press(END)       {:5}    {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modStr, self.dispatch), file=DBG_FILE)
-
-    def on_mouse_release(self, x, y, button, modifiers):  # pyglet.window.mouse.MIDDLE #pyglet.window.mouse.LEFT #pyglet.window.mouse.RIGHT
-        y = self.wh - y
-        c, r = int(x / self.w), int(y / self.h)
-#        self.dumpGeom('on_mouse_release(BGN)', 'x={:4} y={:4} b={} m={} c={} r={} data[r][c]={}'.format(x, y, button, modifiers, c, r, self.data[r][c]))
-        self.toggleCell(c, r)
-#        self.dumpGeom('on_mouse_release(END)', 'x={:4} y={:4} b={} m={} c={} r={} data[r][c]={}'.format(x, y, button, modifiers, c, r, self.data[r][c]))
 
     def on_draw(self):
         super().clear()
