@@ -2,6 +2,7 @@ import sys, os, copy, math
 import pyglet
 import pyglet.shapes as pygshp
 import pyglet.window.key as pygwink
+import pyglet.window.event as pygwine
 sys.path.insert(0, os.path.abspath('../lib'))
 import cmdArgs
 
@@ -9,11 +10,13 @@ def fri(f): return int(math.floor(f+0.5))
 
 class Life(pyglet.window.Window):
     def __init__(self):
+        print('_init(BGN) GLIDERS={}'.format(GLIDERS), file=DBG_FILE)
         display = pyglet.canvas.get_display()
         self.screens = display.get_screens()
 #        self.auxWin = pyglet.window.Window(width=900, height=500, resizable=True, screen=self.screens[0], visible=False)
 #        self.auxWin.set_visible()
         super().__init__(resizable=True, screen=self.screens[1], visible=False)
+# this context sharing error is probably a project setting variable for which path to python and pyglet
         self.DATA_SET   = set('.*')
         self.XLATE      = str.maketrans('.*', '01')
         self.MIN, self.NOM, self.MAX = 0, 1, 2
@@ -23,24 +26,26 @@ class Life(pyglet.window.Window):
         self.DEAD       = [(  0,   0,   0), (100,  80, 127)]
         self.ncolors    = 2
         self.prev,        self.batch     = None, pyglet.graphics.Batch()
-        self.data,        self.cells,    =  [],  []
-        self.clines,      self.rlines    =  [],  []
-        self.savedData,   self.savedDone =  [],  []
-        self.dispatch,    self.buffer    = None, ''
-        self.genX,        self.period    = -1,   1/120
-        self.gen,         self.pop       =  0,   0
-        self.done,        self.undone    =  [],  []
-        self.shapes,      self.stats     =  {},  {}
-        self.gridLines,   self.dirty     = True, False
-        self.x,           self.y         =  0,   0
+        self.data,        self.cells,    =  [],   []
+        self.clines,      self.rlines    =  [],   []
+        self.savedData,   self.savedDone =  [],   []
+        self.dispatch,    self.buffer    = None,  ''
+        self.genX,        self.period    = -1,    1/120
+        self.gen,         self.pop       =  0,    0
+        self.done,        self.undone    =  [],   []
+        self.shapes,      self.stats     =  {},   {}
+        self.gridLines,   self.dirty     = True,  False
+        self.x,           self.y         =  0,    0
+        self.drawCountExp, self.drawCount =  0,    0
+        self.isRunning  = False
         self.argMap     = cmdArgs.parseCmdLine(dbg=1)
-        self.nc         =   50  # 200  # 51  # 221  # 11  # 101
-        self.nr         =   30  #  50  # 31  # 121  #  7  #  57
+        self.nc         = 100  # 200  # 51  # 221  # 11  # 101
+        self.nr         =  50  #  50  # 31  # 121  #  7  #  57
         self.ww         = 1000  # 1900  # 950
         self.wh         =  600  # 1100  # 590
         self.fullScreen = False
         self.getNNCount = self.getNNCountHard #getNNCountWrap
-        self.shapeKey   = 'Gosper glider gun' #1-2-3-4' #'MyShape_Quad_GliderC' #'MyShape_Glider_1A' #'119P4H1V0' #'TestOddOdd'  #'Gosper glider gun'
+        self.shapeKey   = 'TestOddOdd'# 'TestEvenEven' #1-2-3-4' #'MyShape_Quad_GliderC' #'MyShape_Glider_1A' #'119P4H1V0' #'TestOddOdd'  #'Gosper glider gun'
         self.inName     = 'lexicon-no-wrap.txt'
         print('argMap={}'.format(self.argMap), file=DBG_FILE)
         if 'c' in self.argMap and len(self.argMap['c'])  > 0: self.nc         = int(self.argMap['c'][0])
@@ -68,17 +73,25 @@ class Life(pyglet.window.Window):
         self.getNNCount = self.getNNCountHard
         self.parse()
         self._initGrid()
-#        self.addShape(self.nc/2, self.nr/2, self.shapeKey)
+        self.addShapesA()
+        self.set_visible()
+        self.eventLogger = pygwine.WindowEventLogger()
+        self.push_handlers(self.eventLogger)
+        print('_init(END) GLIDERS={}'.format(GLIDERS), file=DBG_FILE)
+
+    def addShapesA(self):
+        self.addShape(self.nc/2, self.nr/2, self.shapeKey)
+
+    def addShapesB(self):
         self.addShape(self.nc/2-2, self.nr/2-4, 'MyShape_Glider_1A')
         self.addShape(1,                     1, 'MyShape_Glider_1A')
         self.addShape(self.nc-2,   self.nr-2,   'MyShape_Glider_2A')
         self.addShape(self.nc/2+2, self.nr/2-4, 'MyShape_Glider_2A')
-        self.set_visible()
-        print('_init() GLIDERS={}'.format(GLIDERS), file=DBG_FILE)
 
     def _initGroup(self, order=0, parent=None):
-        if self.useOrderedGroup: return pyglet.graphics.OrderedGroup(order, parent)
-        else:                    return pyglet.graphics.Group(parent)
+        return pyglet.graphics.OrderedGroup(order, parent) if self.useOrderedGroup else pyglet.graphics.Group(parent)
+#        if self.useOrderedGroup: return pyglet.graphics.OrderedGroup(order, parent)
+#        else:                    return pyglet.graphics.Group(parent)
 
     @staticmethod
     def getMeshColor(i, j, mesh):
@@ -106,7 +119,7 @@ class Life(pyglet.window.Window):
     def _initGrid(self, dbg=1):
         self.cellGroup, self.lineGroup = self._initGroup(0), self._initGroup(1)
         mesh, color    = [1, 5, 25], self.DEAD[0]
-#        self.nc, self.nr = self._alignGrid()
+        self.nc, self.nr = self._alignGrid()
         x, y, w, h, ww, wh, nc, nr = self._geom()
         self.dumpGeom('_initGrid() nest list comp', 'x={:6.2f} y={:6.2f} sk[{}]'.format(x, y, self.shapeKey))
         self.data, self.cells = zip(*[map(list, zip(*[[0, pygshp.Rectangle(fri(i*w+x), fri(wh-h-j*h+y), fri(w), fri(h), color=self.DEAD[(i+j)%self.ncolors], batch=self.batch, group=self.cellGroup)] for i in range(nc)])) for j in range(nr)])
@@ -240,24 +253,24 @@ class Life(pyglet.window.Window):
         if dbg: print(  'addCell(END) c={} r={} data[r][c]={} pop={}'.format(c, r, self.data[r][c], self.pop), file=DBG_FILE)
 
     def updateDataCells(self):
+        print('updateDataCells()'.format(), file=DBG_FILE)
         data = copy.deepcopy(self.data)
         for r in range(self.nr-1, -1, -1):
             for c in range(self.nc):
                 self.updateDataCell(c, r, data)
-        self.data = data
+        self.data = copy.deepcopy(data)
+#        if not self.isRunning: self.on_draw()
 
     def updateDataCell(self, c, r, data, dbg=0):
         n = self.getNNCount(c, r)
         if dbg:
             if n == 0: print(' ', file=DBG_FILE, end='')
-            else: print('{}'.format(n), file=DBG_FILE, end='')
+            else:      print('{}'.format(n), file=DBG_FILE, end='')
         if self.data[r][c] == 1:
             if n == 2 or n == 3: data[r][c] = 1; self.cells[r][c].color = self.ALIVE[0]
             else:                data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]; self.pop -= 1
         elif n == 3:             data[r][c] = 1; self.cells[r][c].color = self.ALIVE[0];                   self.pop += 1
         else:                    data[r][c] = 0; self.cells[r][c].color = self.DEAD[(r+c) % self.ncolors]
-
-    # flatten 2-D to 1-D?
 
     def getNNCountHard(self, c, r):
         n = 0
@@ -438,8 +451,9 @@ class Life(pyglet.window.Window):
         if dbg: print('toggleWrapEdges(END) {}'.format(self.getNNCount), file=DBG_FILE)
 
     def toggleFullScreen(self):
-        if   self.fullScreen: self.fullScreen = False
-        else:                 self.fullScreen = True
+        self.fullScreen = False if self.fullScreen else True
+#        if   self.fullScreen: self.fullScreen = False
+#        else:                 self.fullScreen = True
         self.set_fullscreen(self.fullScreen)
 
     def toggleCell(self, c, r):
@@ -450,8 +464,9 @@ class Life(pyglet.window.Window):
 
     def toggleNColors(self, dbg=0):
         if dbg: print('toggleNColors(BGN) ncolors={}'.format(self.ncolors), file=DBG_FILE)
-        if self.ncolors == 2: self.ncolors = 1
-        else:                 self.ncolors = 2
+        self.ncolors = 1 if self.ncolors == 2 else 2
+#        if self.ncolors == 2: self.ncolors = 1
+#        else:                 self.ncolors = 2
         self.updateCellColors()
         if dbg: print('toggleNColors(END) ncolors={}'.format(self.ncolors), file=DBG_FILE)
 
@@ -471,9 +486,11 @@ class Life(pyglet.window.Window):
                 else:                    self.cells[j][i].color = self.ALIVE[0]
         if dbg: print('updateCellColors(END) ncolors={}'.format(self.ncolors), file=DBG_FILE)
 
-    def undo(self, dt=-1.0, reason=''):
+    def undo(self, dt=-1.0, reason='', dbg=0):
 #        self.gen -= 1
-        self.printInfo('undo(BGN)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+        if self.drawCount < self.drawCountExp: print('undo(WAITING) drawCount={} < drawCountExp={}'.format(self.drawCount, self.drawCountExp), file=DBG_FILE); return
+        print('undo(BGN drawCount={} drawCountExp={})'.format(self.drawCount, self.drawCountExp), file=DBG_FILE)
+        self.printInfo('undo()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
         if self.dirty: self.printData(self.data, 'dirty undo()'); self.dirty = False
         if self.gen > 0 and len(self.done) > 0:
             self.gen -= 1
@@ -486,30 +503,37 @@ class Life(pyglet.window.Window):
                     elif self.data[r][c] == 1: self.cells[r][c].color = self.ALIVE[0]; self.pop += 1
                     else:                      print('undo() ERROR Illegal Value data[{}][{}]={}'.format(r, c, self.data[r][c]), file=DBG_FILE); exit()
             if self.gen == self.genX:
-                self.stop(self.undo, reason)
+                if self.isRunning: self.stop(self.undo, reason)
                 self.genX = -1
             self.updateStats()
-            self.printData(self.data, 'undo()')
+            self.drawCountExp = self.drawCount+1
+            if dbg: self.printData(self.data, 'undo()')
         else: print('undo() Nothing to Undo done[{}]'.format(len(self.done)), file=DBG_FILE)
-        self.printInfo('undo(END)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+        if dbg: self.printInfo('undo()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+        print('undo(END) drawCount={} drawCountExp={}'.format(self.drawCount, self.drawCountExp), file=DBG_FILE)
 
     def update(self, dt=-1.0, reason='', dbg=1):
+        if self.drawCount < self.drawCountExp: print('update(WAITING) drawCount={} < drawCountExp={}'.format(self.drawCount, self.drawCountExp), file=DBG_FILE); return
+        print('update(BGN) drawCount={} drawCountExp={}'.format(self.drawCount, self.drawCountExp), file=DBG_FILE)
         self.gen += 1
-        if dbg: self.printInfo('update(BGN)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+        if dbg: self.printInfo('update()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
         if self.dirty: self.printData(self.data, 'dirty update()'); self.dirty = False
         if self.pop == 0: print('update() pop={} Nothing Left Alive - returning'.format(self.pop), file=DBG_FILE); return
-        if self.steadyState(): self.stop(self.update, 'steadyState {}'.format(reason))
+#        if self.steadyState():
+#            if self.isRunning: self.stop(self.update, 'steadyState {}'.format(reason))
         self.prev = copy.deepcopy(self.data)
         self.done.append(self.prev)
         self.sweep()
         self.updateDataCells()
         if dbg: self.printInfo('update()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
         if self.gen == self.genX:
-            self.stop(self.update, 'gen[{}]==genX[{}] {}'.format(self.gen, self.genX, reason))
+            if self.isRunning: self.stop(self.update, 'gen[{}]==genX[{}] {}'.format(self.gen, self.genX, reason))
             self.genX = -1
         self.updateStats()
+        self.drawCountExp = self.drawCount+1
         if dbg: self.printData(self.data, 'update()')
-        if dbg: self.printInfo('update(END)', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+        if dbg: self.printInfo('update()', 'genX[{:4,}] dt[{:6.3}] reason={}'.format(self.genX, dt, reason))
+        print('update(END) drawCount={} drawCountExp={}'.format(self.drawCount, self.drawCountExp), file=DBG_FILE)
 
     def sweep(self):
         for i in range(1, self.nc-1):
@@ -556,13 +580,13 @@ class Life(pyglet.window.Window):
         self.prev, self.genX = None, -1
         return True
 
-    @staticmethod
-    def stop(func, reason):
+    def stop(self, func, reason):
         print('stop()                  func={} reason={}'.format(func, reason), file=DBG_FILE)
         pyglet.clock.unschedule(func)
+        self.isRunning = False
 
-    @staticmethod
-    def run(func, period, reason):
+    def run(self, func, period, reason):
+        self.isRunning = True
         print('run()                   func={} period[{:6.3}] reason={}'.format(func, period, reason), file=DBG_FILE)
         pyglet.clock.schedule_interval(func, period, reason)
 
@@ -623,13 +647,28 @@ class Life(pyglet.window.Window):
         elif symbol == pygwink.R and modifiers == pygwink.MOD_SHIFT: self.reset()
         elif symbol == pygwink.SPACE:                                self.stop(self.update, 'on_key_press(SPACE)')  # ; self.stop(self.undo, 'on_key_press(SPACE)')
         elif symbol == pygwink.ENTER:                                self.run(self.update, self.period, reason='on_key_press(ENTER)')
-        elif symbol == pygwink.RIGHT:                                self.update(reason='on_key_press(RIGHT)')
-        elif symbol == pygwink.LEFT:                                 self.undo(reason='on_key_press(LEFT)')
+#        elif symbol == pygwink.RIGHT:                                self.update(reason='on_key_press(RIGHT)')
+#        elif symbol == pygwink.LEFT:                                 self.undo(reason='on_key_press(LEFT)')
         if dbg: print('on_key_press(END)       {:5}    {:12} {} {:12} dispatch={}'.format(symbol, symStr, modifiers, modStr, self.dispatch), file=DBG_FILE)
 
+    def on_text(self, text):
+        print('on_text(BGN) text={}'.format(text), file=DBG_FILE)
+        if   text == '$': pyglet.image.get_buffer_manager().get_color_buffer().save('screenshot.png')
+        print('on_text(END) text={}'.format(text), file=DBG_FILE)
+
+    def on_text_motion(self, motion):
+        print('on_text_motion(BGN) {} {}'.format(motion, pygwink.motion_string(motion)), file=DBG_FILE)
+        if   motion == pygwink.MOTION_RIGHT:          self.update(reason='on_text_motion(MOTION_RIGHT)')
+        elif motion == pygwink.MOTION_LEFT:           self.undo(  reason='on_text_motion(MOTION_LEFT)')
+#        if not self.isRunning: self.on_draw()
+        print('on_text_motion(END) {} {}'.format(motion, pygwink.motion_string(motion)), file=DBG_FILE)
+
     def on_draw(self):
+        print('on_draw(BGN) drawCount={} drawCountExp={} gen={}'.format(self.drawCount, self.drawCountExp, self.gen), file=DBG_FILE)
         super().clear()
+        self.drawCount += 1
         self.batch.draw()
+        print('on_draw(END) drawCount={} drawCountExp={} gen={}'.format(self.drawCount, self.drawCountExp, self.gen), file=DBG_FILE)
 
 if __name__ == '__main__':
     DBG_FILE = open(sys.argv[0] + ".log.txt", 'w')
